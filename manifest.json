@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json.schemastore.org/youtrack-app.json",
+  "name": "external-time-tracking",
+  "title": "External Time Tracking",
+  "description": "Verbindet YouTrack mit externen Zeiterfassungssystemen wie clocko:do: Zeiten direkt im Ticket erfassen, erfasste Zeit pro Ticket sehen und die eigene Wochenübersicht in YouTrack öffnen.",
+  "version": "1.0.2",
+  "vendor": {
+    "name": "J&J Ideenschmiede GmbH",
+    "url": "https://jj-ideenschmiede.de",
+    "email": "support@jj-ideenschmiede.de"
+  },
+  "icon": "icon.svg",
+  "minYouTrackVersion": "2025.3.0",
+  "widgets": [
+    {
+      "key": "timesheet",
+      "name": "Time Tracking",
+      "indexPath": "timesheet/index.html",
+      "extensionPoint": "MAIN_MENU_ITEM",
+      "iconPath": "timesheet/widget-icon.svg",
+      "description": "Wochenübersicht der Zeiteinträge aus dem externen Zeiterfassungssystem."
+    },
+    {
+      "key": "issue-time-panel",
+      "name": "Time Tracking",
+      "indexPath": "issue-time-panel/index.html",
+      "extensionPoint": "ISSUE_FIELD_PANEL_LAST",
+      "iconPath": "issue-time-panel/widget-icon.svg",
+      "description": "Zeigt die extern erfasste Zeit zum Ticket und erlaubt neue Einträge.",
+      "permissions": [
+        "READ_ISSUE"
+      ]
+    },
+    {
+      "key": "issue-time-entry",
+      "name": "Log Time",
+      "indexPath": "issue-time-entry/index.html",
+      "extensionPoint": "ISSUE_OPTIONS_MENU_ITEM",
+      "iconPath": "issue-time-entry/widget-icon.svg",
+      "description": "Erfasst einen Zeiteintrag zum Ticket im externen Zeiterfassungssystem.",
+      "permissions": [
+        "READ_ISSUE"
+      ],
+      "expectedDimensions": {
+        "width": 480,
+        "height": 468
+      }
+    },
+    {
+      "key": "account-settings",
+      "name": "Time Tracking",
+      "indexPath": "account-settings/index.html",
+      "extensionPoint": "USER_PROFILE_SETTINGS",
+      "iconPath": "account-settings/widget-icon.svg",
+      "description": "Verbindung zum externen Zeiterfassungssystem."
+    }
+  ]
+}

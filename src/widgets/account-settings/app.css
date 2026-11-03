@@ -1,0 +1,61 @@
+@import url('../common/common.css');
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ring-unit) * 2);
+  max-width: 720px;
+  padding: calc(var(--ring-unit) * 2) calc(var(--ring-unit) * 3);
+}
+
+.settings-intro {
+  margin: 0;
+  color: var(--ring-secondary-color);
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  column-gap: calc(var(--ring-unit) * 2);
+  row-gap: calc(var(--ring-unit) * 1.5);
+  align-items: start;
+}
+
+.settings-label {
+  padding-top: 2px;
+  line-height: var(--ring-line-height);
+  color: var(--ring-text-color);
+}
+
+.settings-control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(var(--ring-unit) / 2);
+  min-width: 0;
+}
+
+.settings-value {
+  padding-top: 2px;
+  line-height: var(--ring-line-height);
+}
+
+.settings-help {
+  max-width: 480px;
+  color: var(--ring-secondary-color);
+  font-size: var(--ring-font-size-smaller);
+  line-height: var(--ring-line-height-lowest);
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ring-unit);
+  padding-top: var(--ring-unit);
+}
+
+@media (max-width: 480px) {
+  .settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

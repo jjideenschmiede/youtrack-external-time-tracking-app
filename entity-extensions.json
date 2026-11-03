@@ -1,0 +1,26 @@
+{
+  "entityTypeExtensions": [
+    {
+      "entityType": "User",
+      "properties": {
+        "timeTrackingAccount": {
+          "type": "string"
+        },
+        "timeTrackingCredentials": {
+          "type": "string"
+        },
+        "timeTrackingPreferences": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "entityType": "Issue",
+      "properties": {
+        "timeTrackingEntries": {
+          "type": "string"
+        }
+      }
+    }
+  ]
+}

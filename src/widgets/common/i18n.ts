@@ -1,0 +1,187 @@
+import {setTranslations} from '@jetbrains/ring-ui-built/components/i18n/i18n';
+import {de as dateFnsDe, enGB as dateFnsEn} from 'date-fns/locale';
+
+export type Lang = 'de' | 'en';
+
+const en = {
+  connect: 'Connect',
+  connectAccount: 'Connect account',
+  disconnect: 'Disconnect',
+  connectFailed: 'Connection failed.',
+  connectedTo: 'Connected to {provider}.',
+  disconnected: 'Disconnected.',
+  disconnectFailed: 'Could not disconnect.',
+  provider: 'Provider',
+  account: 'Account',
+  company: 'Company',
+  learnMore: 'Learn more',
+  credentialsNotice: 'Your credentials are stored in YouTrack only and are never sent back to the browser. ' +
+    'Time entries are created on your behalf with the selected provider.',
+  settingsTitle: 'External time tracking',
+  settingsIntro: 'Connect your account with an external time tracking provider to log time directly from issues ' +
+    'and see your weekly overview in YouTrack.',
+  ownProfileOnly: 'The connection can only be set up in your own profile.',
+  statusLoadFailed: 'Could not load the status.',
+  dataLoadFailed: 'Could not load the data.',
+  providersLoadFailed: 'Could not load the providers.',
+  optionsLoadFailed: 'Could not load the options.',
+  formLoadFailed: 'Could not load the form.',
+  entriesLoadFailed: 'Could not load the time entries.',
+  saveFailed: 'The time entry could not be saved.',
+  requestFailed: 'The request to the app backend failed.',
+  loading: 'Loading…',
+  nothingFound: 'Nothing found',
+  optional: '{label} (optional)',
+  required: '{label} is required.',
+  date: 'Date',
+  duration: 'Duration',
+  start: 'Start',
+  description: 'Description',
+  billable: 'Billable',
+  cancel: 'Cancel',
+  logIn: 'Log in {provider}',
+  log: 'Log',
+  logTime: 'Log Time',
+  durationUnknown: 'Unknown format. Examples: 1h 30m, 1.5h, 90m, 1:30',
+  durationMissing: 'Please enter a duration.',
+  startInvalid: 'Enter the time as HH:MM.',
+  descriptionMissing: 'Please enter a description.',
+  endsInFuture: ' · ends in the future',
+  mappedFrom: 'from issue field “{field}”',
+  loggedTotal: '{duration} logged · {total} in total on this issue.',
+  loggedIn: '{duration} logged in {provider}.',
+  entrySaved: 'Time entry saved.',
+  retry: 'Try again',
+  total: 'Total',
+  mine: 'Thereof by me',
+  me: 'Me',
+  showLess: 'Show less',
+  showAll: 'Show all {count} entries',
+  connectHint: 'Connect your account to log time for this issue.',
+  connectIntro: 'To see your time here and log time from issues, connect your account once. ' +
+    'You can change the connection at any time in your profile under “Time Tracking”.',
+  previousWeek: 'Previous week',
+  nextWeek: 'Next week',
+  thisWeek: 'This week',
+  weekLabel: 'Week {week} · {from} – {to}',
+  weekTotal: 'Week total',
+  noEntries: 'No entries',
+  running: 'running',
+  notBillable: ' · not billable',
+  deletedIn: 'Deleted in {provider}',
+  requested: '{label} (requested)',
+  halfDay: '½ {label}',
+  holiday: 'Holiday · {name}',
+  absentOnDay: 'You are marked as “{label}” on this day in {provider}.',
+  holidayOnDay: 'This day is a public holiday ({name}).'
+};
+
+type Messages = typeof en;
+
+const de: Messages = {
+  connect: 'Verbinden',
+  connectAccount: 'Konto verbinden',
+  disconnect: 'Verbindung trennen',
+  connectFailed: 'Verbindung fehlgeschlagen.',
+  connectedTo: 'Mit {provider} verbunden.',
+  disconnected: 'Verbindung getrennt.',
+  disconnectFailed: 'Verbindung konnte nicht getrennt werden.',
+  provider: 'Anbieter',
+  account: 'Konto',
+  company: 'Firma',
+  learnMore: 'Mehr erfahren',
+  credentialsNotice: 'Deine Zugangsdaten werden nur in YouTrack gespeichert und nie an den Browser zurückgegeben. ' +
+    'Zeiteinträge werden in deinem Namen beim gewählten Anbieter angelegt.',
+  settingsTitle: 'Externe Zeiterfassung',
+  settingsIntro: 'Verbinde dein Konto bei einem externen Zeiterfassungsanbieter, um Zeiten direkt aus Tickets ' +
+    'zu erfassen und deine Wochenübersicht in YouTrack zu sehen.',
+  ownProfileOnly: 'Die Verbindung kann nur im eigenen Profil eingerichtet werden.',
+  statusLoadFailed: 'Status konnte nicht geladen werden.',
+  dataLoadFailed: 'Daten konnten nicht geladen werden.',
+  providersLoadFailed: 'Anbieter konnten nicht geladen werden.',
+  optionsLoadFailed: 'Optionen konnten nicht geladen werden.',
+  formLoadFailed: 'Formular konnte nicht geladen werden.',
+  entriesLoadFailed: 'Zeiteinträge konnten nicht geladen werden.',
+  saveFailed: 'Der Zeiteintrag konnte nicht gespeichert werden.',
+  requestFailed: 'Die Anfrage an das App-Backend ist fehlgeschlagen.',
+  loading: 'Wird geladen…',
+  nothingFound: 'Keine Einträge gefunden',
+  optional: '{label} (optional)',
+  required: '{label} ist erforderlich.',
+  date: 'Datum',
+  duration: 'Dauer',
+  start: 'Beginn',
+  description: 'Beschreibung',
+  billable: 'Abrechenbar',
+  cancel: 'Abbrechen',
+  logIn: 'In {provider} erfassen',
+  log: 'Erfassen',
+  logTime: 'Zeit erfassen',
+  durationUnknown: 'Unbekanntes Format. Beispiele: 1h 30m, 1,5h, 90m, 1:30',
+  durationMissing: 'Bitte eine Dauer angeben.',
+  startInvalid: 'Uhrzeit im Format HH:MM angeben.',
+  descriptionMissing: 'Bitte eine Beschreibung angeben.',
+  endsInFuture: ' · endet in der Zukunft',
+  mappedFrom: 'aus Ticketfeld „{field}“',
+  loggedTotal: '{duration} erfasst · insgesamt {total} am Ticket.',
+  loggedIn: '{duration} in {provider} erfasst.',
+  entrySaved: 'Zeiteintrag gespeichert.',
+  retry: 'Erneut versuchen',
+  total: 'Gesamt',
+  mine: 'Davon von mir',
+  me: 'Ich',
+  showLess: 'Weniger anzeigen',
+  showAll: 'Alle {count} Einträge anzeigen',
+  connectHint: 'Verbinde dein Konto, um Zeiten zu diesem Ticket zu erfassen.',
+  connectIntro: 'Um deine Zeiten hier zu sehen und aus Tickets heraus zu erfassen, verbinde einmalig dein Konto. ' +
+    'Du kannst die Verbindung jederzeit in deinem Profil unter „Time Tracking“ ändern.',
+  previousWeek: 'Vorherige Woche',
+  nextWeek: 'Nächste Woche',
+  thisWeek: 'Diese Woche',
+  weekLabel: 'KW {week} · {from} – {to}',
+  weekTotal: 'Woche gesamt',
+  noEntries: 'Keine Einträge',
+  running: 'läuft',
+  notBillable: ' · nicht abrechenbar',
+  deletedIn: 'In {provider} gelöscht',
+  requested: '{label} (beantragt)',
+  halfDay: '½ {label}',
+  holiday: 'Feiertag · {name}',
+  absentOnDay: 'Für diesen Tag ist in {provider} „{label}“ eingetragen.',
+  holidayOnDay: 'Dieser Tag ist ein Feiertag ({name}).'
+};
+
+function detectLang(): Lang {
+  const value = (typeof YTApp !== 'undefined' && YTApp.locale ? YTApp.locale : navigator.language).toLowerCase();
+  return value.startsWith('de') ? 'de' : 'en';
+}
+
+export const lang: Lang = detectLang();
+export const locale = lang === 'de' ? 'de-DE' : 'en-GB';
+export const dateFnsLocale = lang === 'de' ? dateFnsDe : dateFnsEn;
+
+const messages: Messages = lang === 'de' ? de : en;
+
+if (lang === 'de') {
+  setTranslations({
+    cancel: 'Abbrechen',
+    clear: 'Leeren',
+    close: 'Schließen',
+    loading: 'Wird geladen…',
+    noOptionsFound: 'Keine Optionen gefunden',
+    filterItems: 'Filtern',
+    selectOption: 'Option auswählen',
+    selectDate: 'Datum auswählen',
+    setDate: 'Datum setzen',
+    searchTitle: 'Suchen',
+    clearTitle: 'Leeren',
+    dismiss: 'Schließen'
+  });
+}
+
+export type MessageKey = keyof Messages;
+
+export function t(key: MessageKey, params: Record<string, string | number> = {}): string {
+  return messages[key].replace(/\{(\w+)\}/g, (match, name: string) =>
+    (params[name] === undefined ? match : String(params[name])));
+}

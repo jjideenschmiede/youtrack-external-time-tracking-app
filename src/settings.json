@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Field mapping / Feldzuordnung",
+  "description": "Optional: names of YouTrack custom fields whose values match the names in the time tracking system (e.g. clocko:do). The entry form then preselects the matching customer, project or service automatically. Optional: Namen von YouTrack-Feldern, deren Werte den Namen im Zeiterfassungssystem entsprechen. Das Formular wählt dann den passenden Kunden, das Projekt oder die Leistung automatisch vor.",
+  "properties": {
+    "customerField": {
+      "type": "string",
+      "title": "Customer field / Feld für Kunde",
+      "description": "Name of the custom field that contains the customer name, e.g. \"Kunde\"."
+    },
+    "projectField": {
+      "type": "string",
+      "title": "Project field / Feld für Projekt",
+      "description": "Name of the custom field that contains the project name in the time tracking system."
+    },
+    "serviceField": {
+      "type": "string",
+      "title": "Service field / Feld für Leistung",
+      "description": "Name of the custom field that contains the service name, e.g. \"Leistung\"."
+    }
+  }
+}
