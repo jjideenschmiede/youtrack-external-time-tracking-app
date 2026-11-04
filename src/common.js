@@ -293,6 +293,11 @@ function validateInput(provider, body) {
   };
 }
 
+function readIssueEntries(issue) {
+  const entries = parseJson(issue.extensionProperties.timeTrackingEntries, []);
+  return Array.isArray(entries) ? entries : [];
+}
+
 function createEntry(user, lang, body, projectKey) {
   const session = openSession(user, lang);
   const input = validateInput(session.provider, body);
@@ -306,7 +311,11 @@ function createEntry(user, lang, body, projectKey) {
       : null;
   });
   rememberSelection(user, projectKey, remembered, input.billable);
-  return {entry: entry, provider: session.provider};
+  const refs = {};
+  Object.keys(remembered).forEach((key) => {
+    refs[key] = remembered[key] ? {id: remembered[key].id, name: remembered[key].label} : null;
+  });
+  return {entry: entry, provider: session.provider, refs: refs};
 }
 
 function issueRefs(texts, currentUser) {
@@ -373,6 +382,7 @@ function listCalendar(user, lang, fromDate, toDate) {
 }
 
 exports.parseJson = parseJson;
+exports.readIssueEntries = readIssueEntries;
 exports.respond = respond;
 exports.requestBody = requestBody;
 exports.optionRefs = optionRefs;

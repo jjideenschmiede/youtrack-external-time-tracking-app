@@ -31,6 +31,7 @@ The App lets every user connect their own account of an external time tracking s
 - Time Tracking panel in the issue sidebar with the total and your own tracked time and a form for new entries
 - "Log Time" dialog in the issue options menu
 - Weekly timesheet in the YouTrack main menu, issue IDs in entry descriptions are linked to their issues
+- Time Tracking tab in each project with a weekly or monthly report grouped by issue, person, customer, project or service, including CSV export
 - Automatic preselection of customer, project and service based on YouTrack issue fields
 - Remembers the last selected values per project
 - User interface in English and German, based on the user's YouTrack language

@@ -59,6 +59,8 @@ export default defineConfig({
 
         issueTimePanel: resolve(__dirname, 'src/widgets/issue-time-panel/index.html'),
 
+        projectTimeReport: resolve(__dirname, 'src/widgets/project-time-report/index.html'),
+
         timesheet: resolve(__dirname, 'src/widgets/timesheet/index.html'),
 
       }

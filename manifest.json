@@ -3,7 +3,7 @@
   "name": "external-time-tracking",
   "title": "External Time Tracking",
   "description": "Connects YouTrack with external time tracking systems such as clocko:do: log time directly in issues, see tracked time per issue and open your weekly timesheet in YouTrack.",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "vendor": {
     "name": "J&J Ideenschmiede GmbH",
     "url": "https://jj-ideenschmiede.de",
@@ -53,6 +53,14 @@
       "extensionPoint": "USER_PROFILE_SETTINGS",
       "iconPath": "account-settings/widget-icon.svg",
       "description": "Connection to the external time tracking system."
+    },
+    {
+      "key": "project-time-report",
+      "name": "Time Tracking",
+      "indexPath": "project-time-report/index.html",
+      "extensionPoint": "PROJECT_TAB",
+      "iconPath": "project-time-report/widget-icon.svg",
+      "description": "Report of the time tracked externally for the issues of this project."
     }
   ]
 }

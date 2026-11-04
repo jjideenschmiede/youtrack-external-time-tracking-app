@@ -1,6 +1,6 @@
 import type {HostAPI} from '../../../@types/globals';
 import {lang, t} from './i18n';
-import type {AccountStatus, Calendar, EntryForm, EntryInput, IssueSummary, Option, TimeEntry} from './types';
+import type {AccountStatus, Calendar, EntryForm, EntryInput, IssueSummary, Option, ProjectReport, TimeEntry} from './types';
 
 type Result<T> = T & {error?: string};
 
@@ -51,7 +51,10 @@ export function createApi(host: HostAPI) {
 
     getIssueSummary: () => call<IssueSummary>(host, 'issue/summary', {method: 'POST', body: {}, scope: true}),
     createIssueEntry: (input: EntryInput) =>
-      call<IssueSummary>(host, 'issue/entries', {method: 'POST', body: input, scope: true})
+      call<IssueSummary>(host, 'issue/entries', {method: 'POST', body: input, scope: true}),
+
+    getProjectReport: (from: Date, to: Date) =>
+      call<ProjectReport>(host, 'project/report', {query: {from: from.toISOString(), to: to.toISOString()}, scope: true})
   };
 }
 

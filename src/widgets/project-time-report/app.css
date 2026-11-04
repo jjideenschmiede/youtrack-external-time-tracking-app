@@ -1,0 +1,125 @@
+@import url('../timesheet/app.css');
+
+.day-header {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ring-unit);
+}
+
+.groups,
+.report-entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 72px minmax(80px, 160px);
+  gap: calc(var(--ring-unit) * 2);
+  align-items: center;
+  padding: var(--ring-unit) calc(var(--ring-unit) * 2);
+  border-top: 1px solid var(--ring-line-color);
+}
+
+.group:first-child,
+.report-entry:first-child {
+  border-top: none;
+}
+
+.group-main {
+  display: flex;
+  gap: var(--ring-unit);
+  min-width: 0;
+}
+
+.group-label {
+  flex: none;
+  font-weight: 600;
+}
+
+.group-count {
+  white-space: nowrap;
+}
+
+.group-duration {
+  font-weight: 600;
+  text-align: right;
+}
+
+.group-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--ring-line-color);
+}
+
+.group-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ring-main-color);
+}
+
+.report-entry {
+  display: grid;
+  grid-template-columns: 96px 64px minmax(0, 1fr);
+  gap: calc(var(--ring-unit) * 2);
+  align-items: baseline;
+  padding: var(--ring-unit) calc(var(--ring-unit) * 2);
+  border-top: 1px solid var(--ring-line-color);
+}
+
+.report-entry-date {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-entry-duration {
+  font-weight: 600;
+}
+
+.report-entry-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.report-entry-text {
+  display: flex;
+  gap: var(--ring-unit);
+  min-width: 0;
+}
+
+.report-entry-issue {
+  flex: none;
+}
+
+.report-more {
+  padding: var(--ring-unit) calc(var(--ring-unit) * 2);
+  border-top: 1px solid var(--ring-line-color);
+}
+
+.report-empty {
+  padding: calc(var(--ring-unit) * 4) 0;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .group {
+    grid-template-columns: minmax(0, 1fr) 72px;
+  }
+
+  .group-count,
+  .group-bar {
+    display: none;
+  }
+
+  .report-entry {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .report-entry-date {
+    grid-column: 1 / -1;
+  }
+}

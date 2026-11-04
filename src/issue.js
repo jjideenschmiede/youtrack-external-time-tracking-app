@@ -3,13 +3,23 @@ const common = require('./common');
 const REFRESH_WINDOW_DAYS = 60;
 const DAY = 24 * 3600 * 1000;
 
-function readEntries(issue) {
-  const entries = common.parseJson(issue.extensionProperties.timeTrackingEntries, []);
-  return Array.isArray(entries) ? entries : [];
-}
 
 function writeEntries(issue, entries) {
   issue.extensionProperties.timeTrackingEntries = entries.length > 0 ? JSON.stringify(entries) : null;
+  markLogged(issue, entries);
+}
+
+function markLogged(issue, entries) {
+  const logged = entries.length > 0;
+  if (issue.extensionProperties.timeTrackingLogged !== logged) {
+    issue.extensionProperties.timeTrackingLogged = logged;
+  }
+}
+
+function refKey(refs) {
+  return ['customer', 'project', 'service']
+    .map((key) => (refs && refs[key] ? refs[key].id : ''))
+    .join('|');
 }
 
 function refreshOwnEntries(issue, user, lang, entries) {
@@ -34,7 +44,7 @@ function refreshOwnEntries(issue, user, lang, entries) {
   let remote;
   try {
     const session = common.openSession(user, lang);
-    remote = session.provider.listEntries(session, range, false);
+    remote = session.provider.listEntries(session, range, true);
   } catch (e) {
     console.warn('external-time-tracking: refresh skipped for ' + issue.id + ': ' + e.message);
     return entries;
@@ -63,12 +73,14 @@ function refreshOwnEntries(issue, user, lang, entries) {
       return;
     }
     if (entry.deleted || current.durationSeconds !== entry.durationSeconds ||
-      current.start !== entry.start || current.text !== entry.text) {
+      current.start !== entry.start || current.text !== entry.text ||
+      refKey(current.refs) !== refKey(entry.refs)) {
       changed = true;
       next.push(Object.assign({}, entry, {
         start: current.start,
         durationSeconds: current.durationSeconds,
         text: current.text,
+        refs: current.refs,
         deleted: false,
         deletedAt: null
       }));
@@ -115,7 +127,8 @@ exports.httpHandler = {
       path: 'summary',
       handle: (ctx) => {
         common.respond(ctx, (lang) => {
-          const entries = refreshOwnEntries(ctx.issue, ctx.currentUser, lang, readEntries(ctx.issue));
+          const entries = refreshOwnEntries(ctx.issue, ctx.currentUser, lang, common.readIssueEntries(ctx.issue));
+          markLogged(ctx.issue, entries);
           return summary(ctx.currentUser, lang, entries);
         });
       }
@@ -136,13 +149,14 @@ exports.httpHandler = {
         common.respond(ctx, (lang) => {
           const body = common.requestBody(ctx);
           const created = common.createEntry(ctx.currentUser, lang, body, ctx.issue.project.key);
-          const entries = readEntries(ctx.issue);
+          const entries = common.readIssueEntries(ctx.issue);
           entries.push({
             id: created.entry.id,
             provider: created.provider.id,
             start: created.entry.start,
             durationSeconds: created.entry.durationSeconds,
             text: created.entry.text,
+            refs: created.refs,
             userLogin: ctx.currentUser.login,
             userName: ctx.currentUser.visibleName
           });

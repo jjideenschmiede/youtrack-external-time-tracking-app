@@ -90,6 +90,7 @@ export interface IssueEntry {
   userName: string;
   mine: boolean;
   deleted: boolean;
+  refs?: Record<string, NamedRef | null>;
 }
 
 export interface IssueSummary {
@@ -127,4 +128,20 @@ export interface HolidayDay {
 export interface Calendar {
   absences: AbsenceDay[];
   holidays: HolidayDay[];
+}
+
+export interface ProjectReportEntry {
+  id: string;
+  start: string;
+  durationSeconds: number;
+  text: string;
+  userLogin: string;
+  userName: string;
+  mine: boolean;
+  refs: Record<string, NamedRef | null>;
+  issue: IssueRef;
+}
+
+export interface ProjectReport {
+  entries: ProjectReportEntry[];
 }
