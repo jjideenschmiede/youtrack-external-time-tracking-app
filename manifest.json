@@ -3,7 +3,7 @@
   "name": "external-time-tracking",
   "title": "External Time Tracking",
   "description": "Verbindet YouTrack mit externen Zeiterfassungssystemen wie clocko:do: Zeiten direkt im Ticket erfassen, erfasste Zeit pro Ticket sehen und die eigene Wochenübersicht in YouTrack öffnen.",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "vendor": {
     "name": "J&J Ideenschmiede GmbH",
     "url": "https://jj-ideenschmiede.de",

@@ -3,7 +3,7 @@
 .dialog {
   width: 100%;
   box-sizing: border-box;
-  padding: 0 calc(var(--ring-unit) * 3) calc(var(--ring-unit) * 3);
+  padding: 0 calc(var(--ring-unit) * 3) calc(var(--ring-unit) * 3) calc(var(--ring-unit) * 3 + 9.5px);
 }
 
 .dialog .ett-actions {

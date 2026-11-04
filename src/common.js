@@ -139,7 +139,8 @@ function readPreferences(user) {
 function entryForm(user, lang, projectKey) {
   const session = openSession(user, lang);
   const preferences = readPreferences(user);
-  const preset = (projectKey && preferences.byProject[projectKey]) || preferences.last || {refs: {}, billable: true};
+  const remembered = projectKey ? preferences.byProject[projectKey] : preferences.last;
+  const preset = remembered || {refs: {}, billable: true};
   const refs = {};
   session.provider.entryFields.forEach((field) => {
     refs[field.key] = preset.refs && preset.refs[field.key] ? preset.refs[field.key] : null;
@@ -185,6 +186,14 @@ function findOptionByName(session, field, refs, name) {
   return provider.listOptions(session, field, refs).find((option) => option.label.toLowerCase() === wanted) || null;
 }
 
+function clearDependents(fields, refs, mapped, parentKey) {
+  fields.forEach((child) => {
+    if (child.dependsOn === parentKey && !mapped[child.key]) {
+      refs[child.key] = null;
+    }
+  });
+}
+
 function issueEntryForm(ctx, lang) {
   const form = entryForm(ctx.currentUser, lang, ctx.issue.project.key);
   const session = openSession(ctx.currentUser, lang);
@@ -199,6 +208,10 @@ function issueEntryForm(ctx, lang) {
     }
     const value = readFieldValue(ctx.issue, ctx.currentUser, sourceField);
     if (!value) {
+      if (refs[field.key]) {
+        refs[field.key] = null;
+        clearDependents(form.fields, refs, mapped, field.key);
+      }
       return;
     }
     const parentRefs = {};
@@ -219,11 +232,7 @@ function issueEntryForm(ctx, lang) {
     refs[field.key] = option;
     mapped[field.key] = sourceField;
     if (changed) {
-      form.fields.forEach((child) => {
-        if (child.dependsOn === field.key && !mapped[child.key]) {
-          refs[child.key] = null;
-        }
-      });
+      clearDependents(form.fields, refs, mapped, field.key);
     }
   });
 
