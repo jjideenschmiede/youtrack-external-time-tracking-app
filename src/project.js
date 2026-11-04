@@ -168,6 +168,7 @@ exports.httpHandler = {
       scope: 'project',
       method: 'POST',
       path: 'report',
+      permissions: ['UPDATE_NOT_OWN_WORK_ITEM'],
       handle: (ctx) => {
         common.respond(ctx, () => projectReport(ctx));
       }
