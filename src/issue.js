@@ -122,6 +122,7 @@ exports.httpHandler = {
   endpoints: [
     {
       scope: 'issue',
+      permissions: ['CREATE_WORK_ITEM'],
       method: 'POST',
       path: 'summary',
       handle: (ctx) => {
@@ -134,6 +135,7 @@ exports.httpHandler = {
     },
     {
       scope: 'issue',
+      permissions: ['CREATE_WORK_ITEM'],
       method: 'GET',
       path: 'form',
       handle: (ctx) => {
@@ -142,6 +144,7 @@ exports.httpHandler = {
     },
     {
       scope: 'issue',
+      permissions: ['CREATE_WORK_ITEM'],
       method: 'POST',
       path: 'entries',
       handle: (ctx) => {

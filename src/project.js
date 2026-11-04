@@ -68,32 +68,43 @@ function remoteEntries(ctx, range, provider) {
   }
 }
 
+function needsRefs(entry, range) {
+  const start = new Date(entry.start).getTime();
+  return !entry.deleted && !entry.refsChecked && !hasRefs(entry) && start >= range.from && start < range.to;
+}
+
 function backfillRefs(ctx, range, issues) {
-  const missing = [];
+  let provider = null;
+  let from = Infinity;
+  let to = -Infinity;
   issues.forEach((issue) => {
     common.readIssueEntries(issue).forEach((entry) => {
-      const start = new Date(entry.start).getTime();
-      if (!entry.deleted && !hasRefs(entry) && start >= range.from && start < range.to) {
-        missing.push(entry.provider);
+      if (needsRefs(entry, range)) {
+        const start = new Date(entry.start).getTime();
+        provider = provider || entry.provider;
+        from = Math.min(from, start);
+        to = Math.max(to, start);
       }
     });
   });
-  if (missing.length === 0) {
+  if (!provider) {
     return;
   }
-  const remote = remoteEntries(ctx, range, missing[0]);
+  const remote = remoteEntries(ctx, {from: from, to: to + DAY}, provider);
   if (!remote) {
     return;
   }
   issues.forEach((issue) => {
     let changed = false;
     const entries = common.readIssueEntries(issue).map((entry) => {
-      const current = remote[entry.id];
-      if (!current || hasRefs(entry) || entry.provider !== missing[0]) {
+      if (entry.provider !== provider || !needsRefs(entry, range)) {
         return entry;
       }
       changed = true;
-      return Object.assign({}, entry, {refs: current.refs});
+      const current = remote[entry.id];
+      return current && hasRefs(current)
+        ? Object.assign({}, entry, {refs: current.refs})
+        : Object.assign({}, entry, {refsChecked: true});
     });
     if (changed) {
       issue.extensionProperties.timeTrackingEntries = JSON.stringify(entries);

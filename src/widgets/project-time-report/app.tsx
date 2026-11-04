@@ -81,7 +81,8 @@ function groupEntries(entries: ProjectReportEntry[], key: GroupKey): Group[] {
   return Array.from(groups.values()).sort((a, b) => b.seconds - a.seconds || a.label.localeCompare(b.label, locale));
 }
 
-function csvValue(value: string, separator: string): string {
+function csvValue(raw: string, separator: string): string {
+  const value = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
   return /["\n\r]/.test(value) || value.includes(separator) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
