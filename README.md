@@ -1,63 +1,86 @@
-# External Time Tracking für YouTrack
+# YouTrack External Time Tracking App
 
-Dieses Repository enthält eine YouTrack-App der J&J Ideenschmiede GmbH, die YouTrack mit externen Zeiterfassungssystemen verbindet. Aktuell wird **clocko:do** unterstützt; weitere Anbieter lassen sich über die Provider-Registry in `src/providers.js` ergänzen.
+A YouTrack app that connects YouTrack with external time tracking systems such as clocko:do: log time directly in issues, see tracked time per issue and open your weekly timesheet in YouTrack.
 
-## Funktionen
+---
 
-- **Profil → Time Tracking** (`USER_PROFILE_SETTINGS`): Jede Person wählt ihren Anbieter und hinterlegt die eigenen Zugangsdaten (bei clocko:do E-Mail-Adresse und API-Schlüssel). Die Zugangsdaten werden vor dem Speichern gegen die API geprüft und nie an den Browser zurückgegeben.
-- **Ticket-Seitenleiste „Time Tracking“** (`ISSUE_FIELD_PANEL_LAST`): Zeigt die über die App erfasste Zeit am Ticket (gesamt und eigene) und erlaubt neue Einträge direkt unter den Feldern.
-- **Ticket-Menü → „Log External Time“** (`ISSUE_OPTIONS_MENU_ITEM`): Dasselbe Formular als Dialog.
-- **Hauptmenü → „Time Tracking“** (`MAIN_MENU_ITEM`): Wochenübersicht der eigenen Einträge aus dem Anbieter, Ticket-IDs im Beschreibungstext werden als Links aufgelöst.
+<div>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/youtrack-certified-partner-white.svg">
+    <img src="docs/images/youtrack-certified-partner-black.svg" alt="YouTrack Certified Partner" align="middle">
+  </picture>
+  <img src="docs/images/spacer.png" width="40" height="1" alt="" align="middle">
+  <img src="docs/images/youtrack-honored-app-creator.png" alt="Honored YouTrack App Creator" height="120" align="middle">
+</div>
 
-## Sprachen
+## YouTrack Apps, TeamCity Plugins & more
 
-Die Oberfläche und alle Fehlermeldungen sind auf Deutsch und Englisch verfügbar. Die Sprache folgt der YouTrack-Spracheinstellung des Benutzers (`src/widgets/common/i18n.ts` und `src/i18n.js`).
+### J&J Ideenschmiede GmbH - Your Partner for JetBrains Solutions
 
-## Feldzuordnung
+We are **YouTrack Certified** and **TeamCity Certified** developers, specializing in custom solutions for JetBrains products.
 
-Unter `Administration > Apps > External Time Tracking > Settings` (global oder pro Projekt) kann für Kunde, Projekt und Leistung jeweils der Name eines YouTrack-Feldes hinterlegt werden, z. B. `Kunde`. Steht im Ticket dort ein Wert, sucht die App den gleichnamigen Eintrag beim Anbieter und wählt ihn im Formular vor. Wird kein passender Eintrag gefunden, erscheint ein Hinweis im Formular.
+👉🏼 Visit our [website](https://www.jj-ideenschmiede.de) to learn more about our services.
 
-## Architektur
+---
 
-| Datei | Zweck |
-| --- | --- |
-| `src/providers.js` | Provider-Registry und clocko:do-Implementierung (`verify`, `listOptions`, `listEntries`, `createEntry`). |
-| `src/i18n.js` | Übersetzungen der Backend-Meldungen (Deutsch/Englisch). |
-| `src/settings.json` | App-Einstellungen für die Feldzuordnung. |
-| `src/common.js` | Gemeinsame Logik: Kontoverwaltung, Formular-Schema, Validierung, Ticket-Referenzen. |
-| `src/account.js` | Globaler HTTP-Handler für Verbinden/Trennen des eigenen Kontos. |
-| `src/timesheet.js` | Globaler HTTP-Handler für Formular, Auswahllisten und Wochenübersicht. |
-| `src/issue.js` | Ticket-bezogener HTTP-Handler (`scope: issue`) für Zusammenfassung und neue Einträge. |
-| `entity-extensions.json` | Speichert Konto, Zugangsdaten und zuletzt gewählte Werte am Benutzer sowie die erfassten Einträge am Ticket. |
+## Features
 
-Ein neuer Anbieter definiert seine Zugangsfelder (`credentialFields`) und Buchungsfelder (`entryFields`, inkl. Abhängigkeiten wie Projekt → Kunde). Die Oberfläche rendert beide Formulare generisch.
+The App lets every user connect their own account of an external time tracking system and log time without leaving YouTrack. Entries are created directly in the time tracking system, so it stays the single source of truth. Currently clocko:do is supported.
 
-## Development
+- Personal connection to the time tracking system in the YouTrack profile, credentials are verified before saving and never sent back to the browser
+- Time Tracking panel in the issue sidebar with the total and your own tracked time and a form for new entries
+- "Log Time" dialog in the issue options menu
+- Weekly timesheet in the YouTrack main menu, issue IDs in entry descriptions are linked to their issues
+- Automatic preselection of customer, project and service based on YouTrack issue fields
+- Remembers the last selected values per project
+- User interface in English and German, based on the user's YouTrack language
 
-1. Repository klonen
-2. Abhängigkeiten installieren: `npm install`
-3. App bauen und validieren: `npm run build`
-4. Code prüfen: `npm run lint`
+## Requirements
+
+- YouTrack 2025.3 or later
+- An account in a supported time tracking system (clocko:do) with API access
 
 ## Installation
 
-**Per CLI:**
+1. Download the latest release from the [marketplace](https://plugins.jetbrains.com/)
+2. Go to the YouTrack Administration area
+3. Navigate to Apps
+4. Click "Upload app zip"
+5. Select the downloaded zip file
+6. Attach the app to the projects in which time should be tracked
+
+## Configuration
+
+Each user connects their own account in the YouTrack profile under "Time Tracking". For clocko:do, this requires the e-mail address and the API key of the user.
+
+Optionally, administrators can map YouTrack fields to the customer, project and service of the time tracking system in the app settings, either globally or per project. If an issue field contains a value, the matching entry is preselected in the form.
+
+> [!NOTE]
+> Always install updates over the existing app. Deleting the app also removes the connected accounts and the tracked time stored on issues.
+
+## Development
+
+> [!NOTE]
+> You need to have Node.js and npm installed to install, build, and pack the app.
+
+You can clone this repository and build the app locally. Make sure you have Node.js and npm installed. Install the dependencies and build the app using:
+
+```bash
+npm install
+```
+
+After that, you can run the following command to build the app:
 
 ```bash
 npm run build
-npm run upload -- --host https://project.ideasfactory.dev --token <token>
 ```
 
-**Per ZIP-Datei:**
+If you want to pack the app for distribution, you can use:
 
 ```bash
-npm run build && npm run pack
+npm run pack
 ```
 
-Anschließend in YouTrack unter `Administration > Apps > App hochladen` die generierte `.zip`-Datei auswählen.
+## Help & Support
 
-Nach der Installation muss die App an die gewünschten Projekte angehängt werden, damit die Ticket-Widgets erscheinen.
-
-## Hilfe & Fragen
-
-Bei Fragen kannst du dich jederzeit per [Slack](https://jj-ideenschmiede.slack.com/archives/D037CE6GBFW) oder per E-Mail an Jonas Kwiedor ([jonas.kwiedor@jj-ideenschmiede.de](mailto:jonas.kwiedor@jj-ideenschmiede.de)) wenden.
+If you have any questions or need support, feel free to reach out to us via [e-mail](mailto:support@jj-ideenschmiede.de) or visit our [website](https://www.jj-ideenschmiede.de).

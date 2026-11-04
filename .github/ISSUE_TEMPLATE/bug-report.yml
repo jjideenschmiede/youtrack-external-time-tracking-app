@@ -1,0 +1,112 @@
+name: Bug Report
+description: Report a problem with the External Time Tracking app in YouTrack.
+title: "fix: "
+labels: ["fix"]
+assignees:
+  - gowizzard
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the fields below as precisely as possible, so we can reproduce and fix the problem quickly.
+
+        > [!IMPORTANT]
+        > Please remove any confidential data such as API keys, issue summaries, customer names, user names or URLs of your YouTrack instance from screenshots and logs.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the problem as detailed as possible.
+      placeholder: When I log time in the issue sidebar, the entry is not created in clocko:do and …
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce the problem?
+      placeholder: |
+        1. Open an issue in a project with the app attached
+        2. Select a customer, project and service in the Time Tracking panel
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+  - type: input
+    id: youtrack-version
+    attributes:
+      label: YouTrack version
+      description: You can find the version and build under Help at the bottom of the YouTrack sidebar.
+      placeholder: 2026.2.19197
+    validations:
+      required: true
+  - type: dropdown
+    id: hosting
+    attributes:
+      label: YouTrack hosting
+      options:
+        - YouTrack Cloud
+        - YouTrack Server
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: External Time Tracking version
+      description: You can find the app version under Administration > Apps.
+      placeholder: 1.0.5
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Time tracking system
+      options:
+        - clocko:do
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      multiple: true
+      options:
+        - Connecting the account in the profile
+        - Time Tracking panel in the issue sidebar
+        - Log Time dialog in the issue menu
+        - Weekly timesheet in the main menu
+        - Preselection by field mapping
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: field-mapping
+    attributes:
+      label: Field mapping
+      description: If the problem is related to the preselection, tell us which YouTrack fields are mapped in the app settings and which values the affected issue contains.
+      placeholder: |
+        Customer field: Customer
+        Project field: (empty)
+        Service field: Service
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      placeholder: Chrome 140 on macOS
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste errors from the browser console and the app log messages that start with `external-time-tracking:`. You can find the app logs under Administration > Apps > External Time Tracking > Logs.
+      render: shell
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Add screenshots or a short screen recording if they help to understand the problem.

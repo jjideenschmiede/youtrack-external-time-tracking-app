@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/youtrack-app.json",
   "name": "external-time-tracking",
   "title": "External Time Tracking",
-  "description": "Verbindet YouTrack mit externen Zeiterfassungssystemen wie clocko:do: Zeiten direkt im Ticket erfassen, erfasste Zeit pro Ticket sehen und die eigene Wochenübersicht in YouTrack öffnen.",
+  "description": "Connects YouTrack with external time tracking systems such as clocko:do: log time directly in issues, see tracked time per issue and open your weekly timesheet in YouTrack.",
   "version": "1.0.5",
   "vendor": {
     "name": "J&J Ideenschmiede GmbH",
@@ -18,7 +18,7 @@
       "indexPath": "timesheet/index.html",
       "extensionPoint": "MAIN_MENU_ITEM",
       "iconPath": "timesheet/widget-icon.svg",
-      "description": "Wochenübersicht der Zeiteinträge aus dem externen Zeiterfassungssystem."
+      "description": "Weekly overview of your entries from the external time tracking system."
     },
     {
       "key": "issue-time-panel",
@@ -26,7 +26,7 @@
       "indexPath": "issue-time-panel/index.html",
       "extensionPoint": "ISSUE_FIELD_PANEL_LAST",
       "iconPath": "issue-time-panel/widget-icon.svg",
-      "description": "Zeigt die extern erfasste Zeit zum Ticket und erlaubt neue Einträge.",
+      "description": "Shows the time tracked externally for the issue and lets you log new entries.",
       "permissions": [
         "READ_ISSUE"
       ]
@@ -37,7 +37,7 @@
       "indexPath": "issue-time-entry/index.html",
       "extensionPoint": "ISSUE_OPTIONS_MENU_ITEM",
       "iconPath": "issue-time-entry/widget-icon.svg",
-      "description": "Erfasst einen Zeiteintrag zum Ticket im externen Zeiterfassungssystem.",
+      "description": "Logs a time entry for the issue in the external time tracking system.",
       "permissions": [
         "READ_ISSUE"
       ],
@@ -52,7 +52,7 @@
       "indexPath": "account-settings/index.html",
       "extensionPoint": "USER_PROFILE_SETTINGS",
       "iconPath": "account-settings/widget-icon.svg",
-      "description": "Verbindung zum externen Zeiterfassungssystem."
+      "description": "Connection to the external time tracking system."
     }
   ]
 }
