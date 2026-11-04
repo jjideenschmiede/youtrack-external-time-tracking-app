@@ -10,9 +10,8 @@ function writeEntries(issue, entries) {
 }
 
 function markLogged(issue, entries) {
-  const logged = entries.length > 0;
-  if (issue.extensionProperties.timeTrackingLogged !== logged) {
-    issue.extensionProperties.timeTrackingLogged = logged;
+  if (entries.length > 0) {
+    common.indexIssue(issue);
   }
 }
 

@@ -54,7 +54,7 @@ export function createApi(host: HostAPI) {
       call<IssueSummary>(host, 'issue/entries', {method: 'POST', body: input, scope: true}),
 
     getProjectReport: (from: Date, to: Date) =>
-      call<ProjectReport>(host, 'project/report', {query: {from: from.toISOString(), to: to.toISOString()}, scope: true})
+      call<ProjectReport>(host, 'project/report', {method: 'POST', body: {from: from.toISOString(), to: to.toISOString()}, scope: true})
   };
 }
 

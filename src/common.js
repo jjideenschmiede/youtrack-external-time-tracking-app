@@ -298,6 +298,23 @@ function readIssueEntries(issue) {
   return Array.isArray(entries) ? entries : [];
 }
 
+function readProjectIndex(project) {
+  const index = parseJson(project.extensionProperties.timeTrackingIssues, null);
+  return index && Array.isArray(index.issues) ? index : null;
+}
+
+function writeProjectIndex(project, index) {
+  project.extensionProperties.timeTrackingIssues = JSON.stringify(index);
+}
+
+function indexIssue(issue) {
+  const index = readProjectIndex(issue.project) || {complete: false, issues: []};
+  if (index.issues.indexOf(issue.id) === -1) {
+    index.issues.push(issue.id);
+    writeProjectIndex(issue.project, index);
+  }
+}
+
 function createEntry(user, lang, body, projectKey) {
   const session = openSession(user, lang);
   const input = validateInput(session.provider, body);
@@ -383,6 +400,9 @@ function listCalendar(user, lang, fromDate, toDate) {
 
 exports.parseJson = parseJson;
 exports.readIssueEntries = readIssueEntries;
+exports.readProjectIndex = readProjectIndex;
+exports.writeProjectIndex = writeProjectIndex;
+exports.indexIssue = indexIssue;
 exports.respond = respond;
 exports.requestBody = requestBody;
 exports.optionRefs = optionRefs;

@@ -19,9 +19,14 @@
       "properties": {
         "timeTrackingEntries": {
           "type": "string"
-        },
-        "timeTrackingLogged": {
-          "type": "boolean"
+        }
+      }
+    },
+    {
+      "entityType": "Project",
+      "properties": {
+        "timeTrackingIssues": {
+          "type": "string"
         }
       }
     }
