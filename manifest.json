@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/youtrack-app.json",
   "name": "external-time-tracking",
   "title": "External Time Tracking",
-  "description": "Connects YouTrack with external time tracking systems such as clocko:do: log time directly in issues, see tracked time per issue and open your weekly timesheet in YouTrack.",
+  "description": "Connects YouTrack with external time tracking systems such as clocko:do: log time directly in issues, see tracked time per issue, open your weekly timesheet and get time reports per project.",
   "version": "1.2.3",
   "vendor": {
     "name": "J&J Ideenschmiede GmbH",

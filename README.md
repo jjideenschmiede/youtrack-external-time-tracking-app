@@ -1,6 +1,6 @@
 # YouTrack External Time Tracking App
 
-A YouTrack app that connects YouTrack with external time tracking systems such as clocko:do: log time directly in issues, see tracked time per issue and open your weekly timesheet in YouTrack.
+A YouTrack app that connects YouTrack with external time tracking systems such as clocko:do: log time directly in issues, see tracked time per issue, open your weekly timesheet and get time reports per project.
 
 ---
 
@@ -43,7 +43,7 @@ The App lets every user connect their own account of an external time tracking s
 
 ## Installation
 
-1. Download the latest release from the [marketplace](https://plugins.jetbrains.com/)
+1. Download the latest release from the [marketplace](https://plugins.jetbrains.com/plugin/35793-external-time-tracking)
 2. Go to the YouTrack Administration area
 3. Navigate to Apps
 4. Click "Upload app zip"
