@@ -41,6 +41,70 @@ function loadIndex(project) {
   return index;
 }
 
+function hasRefs(entry) {
+  return !!entry.refs && ['customer', 'project', 'service'].some((key) => !!entry.refs[key]);
+}
+
+function remoteEntries(ctx, range, provider) {
+  if (!common.readAccount(ctx.currentUser)) {
+    return null;
+  }
+  try {
+    const session = common.openSession(ctx.currentUser, i18n.language(ctx));
+    if (session.provider.id !== provider) {
+      return null;
+    }
+    const byId = {};
+    session.provider.listEntries(session, {
+      from: new Date(range.from - DAY).toISOString(),
+      to: new Date(range.to + DAY).toISOString()
+    }, true, true).forEach((entry) => {
+      byId[entry.id] = entry;
+    });
+    return byId;
+  } catch (e) {
+    console.warn('external-time-tracking: report refs unavailable: ' + (e.message || e));
+    return null;
+  }
+}
+
+function backfillRefs(ctx, range, issues) {
+  const missing = [];
+  issues.forEach((issue) => {
+    common.readIssueEntries(issue).forEach((entry) => {
+      const start = new Date(entry.start).getTime();
+      if (!entry.deleted && !hasRefs(entry) && start >= range.from && start < range.to) {
+        missing.push(entry.provider);
+      }
+    });
+  });
+  if (missing.length === 0) {
+    return;
+  }
+  const remote = remoteEntries(ctx, range, missing[0]);
+  if (!remote) {
+    return;
+  }
+  issues.forEach((issue) => {
+    let changed = false;
+    const entries = common.readIssueEntries(issue).map((entry) => {
+      const current = remote[entry.id];
+      if (!current || hasRefs(entry) || entry.provider !== missing[0]) {
+        return entry;
+      }
+      changed = true;
+      return Object.assign({}, entry, {refs: current.refs});
+    });
+    if (changed) {
+      issue.extensionProperties.timeTrackingEntries = JSON.stringify(entries);
+    }
+  });
+}
+
+function stripIssueId(text, issueId) {
+  return (text || '').replace(new RegExp('^' + issueId + '[:\\s-]*'), '').trim();
+}
+
 function findIssue(id) {
   try {
     return entities.Issue.findById(id);
@@ -53,17 +117,23 @@ function projectReport(ctx) {
   const range = readRange(common.requestBody(ctx));
   const index = loadIndex(ctx.project);
 
-  const entries = [];
   const kept = [];
+  const visible = [];
   index.issues.forEach((id) => {
     const issue = findIssue(id);
     if (!issue || issue.project.key !== ctx.project.key || kept.indexOf(issue.id) !== -1) {
       return;
     }
     kept.push(issue.id);
-    if (!issue.isVisibleTo(ctx.currentUser)) {
-      return;
+    if (issue.isVisibleTo(ctx.currentUser)) {
+      visible.push(issue);
     }
+  });
+
+  backfillRefs(ctx, range, visible);
+
+  const entries = [];
+  visible.forEach((issue) => {
     const ref = {id: issue.id, summary: issue.summary, url: issue.url};
     common.readIssueEntries(issue).forEach((entry) => {
       const start = new Date(entry.start).getTime();
@@ -74,7 +144,7 @@ function projectReport(ctx) {
         id: entry.id,
         start: entry.start,
         durationSeconds: entry.durationSeconds,
-        text: entry.text,
+        text: stripIssueId(entry.text, issue.id),
         userLogin: entry.userLogin,
         userName: entry.userName,
         mine: entry.userLogin === ctx.currentUser.login,

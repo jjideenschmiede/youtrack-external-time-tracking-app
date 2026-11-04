@@ -293,12 +293,14 @@ const clockodo = {
     return match ? {id: String(match.id), label: match.name} : null;
   },
 
-  listEntries: (session, range, withNames) => {
+  listEntries: (session, range, withNames, allUsers) => {
     const query = [
       {name: 'time_since', value: toClockodoTime(range.from)},
-      {name: 'time_until', value: toClockodoTime(range.to)},
-      {name: 'filter[users_id]', value: session.account.externalUserId}
+      {name: 'time_until', value: toClockodoTime(range.to)}
     ];
+    if (!allUsers) {
+      query.push({name: 'filter[users_id]', value: session.account.externalUserId});
+    }
     if (withNames) {
       query.push({name: 'enhanced_list', value: 'true'});
     }
