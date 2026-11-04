@@ -2,6 +2,25 @@ const common = require('./common');
 
 const REFRESH_WINDOW_DAYS = 60;
 const DAY = 24 * 3600 * 1000;
+const REFRESH_INTERVAL = 10 * 60 * 1000;
+
+function claimRefresh(issue, user) {
+  const now = Date.now();
+  const stamps = common.parseJson(issue.extensionProperties.timeTrackingRefreshed, {});
+  const last = typeof stamps[user.login] === 'number' ? stamps[user.login] : 0;
+  if (now - last < REFRESH_INTERVAL) {
+    return false;
+  }
+  const next = {};
+  Object.keys(stamps).forEach((login) => {
+    if (typeof stamps[login] === 'number' && now - stamps[login] < REFRESH_INTERVAL) {
+      next[login] = stamps[login];
+    }
+  });
+  next[user.login] = now;
+  issue.extensionProperties.timeTrackingRefreshed = JSON.stringify(next);
+  return true;
+}
 
 
 function writeEntries(issue, entries) {
@@ -30,7 +49,7 @@ function refreshOwnEntries(issue, user, lang, entries) {
   const own = entries.filter((entry) => entry.userLogin === user.login &&
     entry.provider === connection.provider.id &&
     new Date(entry.start).getTime() >= oldest);
-  if (own.length === 0) {
+  if (own.length === 0 || !claimRefresh(issue, user)) {
     return entries;
   }
 

@@ -19,6 +19,9 @@
       "properties": {
         "timeTrackingEntries": {
           "type": "string"
+        },
+        "timeTrackingRefreshed": {
+          "type": "string"
         }
       }
     },
