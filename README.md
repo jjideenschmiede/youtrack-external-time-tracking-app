@@ -38,7 +38,7 @@ The App lets every user connect their own account of an external time tracking s
 
 ## Requirements
 
-- YouTrack 2025.3 or later
+- YouTrack 2026.2 or later
 - An account in a supported time tracking system (clocko:do) with API access
 
 ## Installation
