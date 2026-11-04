@@ -5,6 +5,7 @@ const MESSAGES = {
   de: {
     unknownError: 'Unbekannter Fehler.',
     invalidBody: 'Ungültiger Request-Body.',
+    guestNotAllowed: 'Gäste können kein Zeiterfassungskonto verbinden. Bitte melde dich an.',
     notConnected: 'Kein Zeiterfassungskonto verbunden. Bitte zuerst im Profil unter „Time Tracking“ verbinden.',
     credentialsMissing: 'Die Zugangsdaten fehlen. Bitte das Konto im Profil erneut verbinden.',
     unknownProvider: 'Unbekannter Anbieter: {provider}',
@@ -30,6 +31,7 @@ const MESSAGES = {
   en: {
     unknownError: 'Unknown error.',
     invalidBody: 'Invalid request body.',
+    guestNotAllowed: 'Guests cannot connect a time tracking account. Please log in.',
     notConnected: 'No time tracking account connected. Connect one in your profile under “Time Tracking” first.',
     credentialsMissing: 'The credentials are missing. Please reconnect the account in your profile.',
     unknownProvider: 'Unknown provider: {provider}',

@@ -46,7 +46,14 @@ function optionRefs(ctx) {
   return refs;
 }
 
+function isGuest(user) {
+  return !user || user.login === 'guest';
+}
+
 function readAccount(user) {
+  if (isGuest(user)) {
+    return null;
+  }
   const account = parseJson(user.extensionProperties.timeTrackingAccount, null);
   if (!account) {
     return null;
@@ -98,6 +105,9 @@ function accountStatus(user, lang) {
 }
 
 function connect(user, lang, providerId, credentials) {
+  if (isGuest(user)) {
+    i18n.fail('guestNotAllowed');
+  }
   const provider = providers.find(providerId);
   if (!provider) {
     i18n.fail('unknownProvider', {provider: providerId});
