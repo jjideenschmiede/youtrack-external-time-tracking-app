@@ -16,6 +16,27 @@ import {t} from '../common/i18n';
 const host = await YTApp.register();
 
 const VISIBLE_ENTRIES = 3;
+const REFRESH_INTERVAL = 10 * 60 * 1000;
+const REFRESH_WINDOW = 60 * 24 * 3600 * 1000;
+
+function claimRefresh(issueId: string): boolean {
+  const key = `ett-refresh-${issueId}`;
+  try {
+    const last = Number(window.localStorage.getItem(key) || 0);
+    if (Date.now() - last < REFRESH_INTERVAL) {
+      return false;
+    }
+    window.localStorage.setItem(key, String(Date.now()));
+  } catch {
+    return true;
+  }
+  return true;
+}
+
+function needsRefresh(summary: IssueSummary): boolean {
+  const oldest = Date.now() - REFRESH_WINDOW;
+  return !!summary.account && summary.entries.some(entry => entry.mine && new Date(entry.start).getTime() >= oldest);
+}
 const MODAL_REVEAL_FALLBACK_MS = 250;
 
 function waitForResize(): Promise<void> {
@@ -62,6 +83,15 @@ const AppComponent: React.FunctionComponent = () => {
       const [nextSummary, nextIssue] = await Promise.all([api.getIssueSummary(), loadIssueContext(host)]);
       setSummary(nextSummary);
       setIssue(nextIssue);
+      if (needsRefresh(nextSummary) && claimRefresh(nextIssue.id)) {
+        api.refreshIssue()
+          .then(async result => {
+            if (result.changed) {
+              setSummary(await api.getIssueSummary());
+            }
+          })
+          .catch(() => undefined);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : t('dataLoadFailed'));
     }

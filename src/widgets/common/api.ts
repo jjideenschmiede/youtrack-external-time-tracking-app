@@ -3,14 +3,29 @@ import {lang, t} from './i18n';
 import type {AccountStatus, Calendar, EntryForm, EntryInput, IssueSummary, Option, ProjectReport, TimeEntry} from './types';
 
 type Result<T> = T & {error?: string};
+type Params = {method?: string; query?: Record<string, string>; body?: unknown; scope?: boolean};
+
+interface JobTicket {
+  job: string;
+}
+
+interface JobState<T> {
+  status: 'pending' | 'done';
+  result?: T;
+}
+
+const POLL_DELAYS = [250, 400, 600, 800, 1000];
+const POLL_TIMEOUT = 45000;
 
 export class ApiError extends Error {}
 
-async function call<T>(
-  host: HostAPI,
-  path: string,
-  params: {method?: string; query?: Record<string, string>; body?: unknown; scope?: boolean} = {}
-): Promise<T> {
+let jobQueue: Promise<unknown> = Promise.resolve();
+
+function wait(ms: number): Promise<void> {
+  return new Promise(resolve => window.setTimeout(resolve, ms));
+}
+
+async function request<T>(host: HostAPI, path: string, params: Params = {}): Promise<T> {
   let response: Result<T>;
   try {
     response = await host.fetchApp<Result<T>>(path, {scope: false, ...params, query: {...params.query, lang}});
@@ -23,38 +38,67 @@ async function call<T>(
   return response;
 }
 
+function isTicket(value: unknown): value is JobTicket {
+  return !!value && typeof value === 'object' && typeof (value as JobTicket).job === 'string';
+}
+
+async function poll<T>(host: HostAPI, id: string): Promise<T> {
+  const started = Date.now();
+  for (let attempt = 0; Date.now() - started < POLL_TIMEOUT; attempt++) {
+    await wait(POLL_DELAYS[Math.min(attempt, POLL_DELAYS.length - 1)]);
+    const state = await request<JobState<T>>(host, 'account/job', {query: {id}});
+    if (state.status === 'done') {
+      return state.result as T;
+    }
+  }
+  throw new ApiError(t('requestTimeout'));
+}
+
+function job<T>(host: HostAPI, path: string, params: Params): Promise<T> {
+  const run = async () => {
+    const response = await request<T | JobTicket>(host, path, {method: 'POST', body: {}, ...params});
+    return isTicket(response) ? poll<T>(host, response.job) : response as T;
+  };
+  const result = jobQueue.then(run, run);
+  jobQueue = result.catch(() => undefined);
+  return result;
+}
+
 export function createApi(host: HostAPI) {
   return {
-    getAccount: () => call<AccountStatus>(host, 'account/status'),
+    getAccount: () => request<AccountStatus>(host, 'account/status'),
     connect: (provider: string, credentials: Record<string, string>) =>
-      call<AccountStatus>(host, 'account/connect', {method: 'POST', body: {provider, credentials}}),
-    disconnect: () => call<AccountStatus>(host, 'account/disconnect', {method: 'POST', body: {}}),
+      job<AccountStatus>(host, 'account/connect', {body: {provider, credentials}}),
+    disconnect: () => request<AccountStatus>(host, 'account/disconnect', {method: 'POST', body: {}}),
 
-    getEntryForm: () => call<EntryForm>(host, 'timesheet/form'),
-    getIssueEntryForm: () => call<EntryForm>(host, 'issue/form', {scope: true}),
+    getEntryForm: () => request<EntryForm>(host, 'timesheet/form'),
+    getIssueEntryForm: () => job<EntryForm>(host, 'issue/form', {scope: true}),
     getOptions: (field: string, refs: Record<string, string | null>) => {
-      const query: Record<string, string> = {field};
+      const selected: Record<string, string> = {};
       Object.keys(refs).forEach(key => {
         const value = refs[key];
         if (value) {
-          query[key] = value;
+          selected[key] = value;
         }
       });
-      return call<{options: Option[]}>(host, 'timesheet/options', {query});
+      return job<{options: Option[]}>(host, 'timesheet/options', {body: {field, refs: selected}});
     },
     getEntries: (from: Date, to: Date) =>
-      call<{entries: TimeEntry[]}>(host, 'timesheet/entries', {query: {from: from.toISOString(), to: to.toISOString()}}),
+      job<{entries: TimeEntry[]}>(host, 'timesheet/list', {body: {from: from.toISOString(), to: to.toISOString()}}),
     getCalendar: (fromDate: string, toDate: string) =>
-      call<Calendar>(host, 'timesheet/calendar', {query: {fromDate, toDate}}),
+      job<Calendar>(host, 'timesheet/calendar', {body: {fromDate, toDate}}),
     createEntry: (input: EntryInput) =>
-      call<{entry: TimeEntry}>(host, 'timesheet/entries', {method: 'POST', body: input}),
+      job<{entry: TimeEntry}>(host, 'timesheet/entries', {body: input}),
 
-    getIssueSummary: () => call<IssueSummary>(host, 'issue/summary', {method: 'POST', body: {}, scope: true}),
+    getIssueSummary: () => request<IssueSummary>(host, 'issue/summary', {scope: true}),
+    refreshIssue: () => job<{changed: boolean}>(host, 'issue/refresh', {scope: true}),
     createIssueEntry: (input: EntryInput) =>
-      call<IssueSummary>(host, 'issue/entries', {method: 'POST', body: input, scope: true}),
+      job<IssueSummary>(host, 'issue/entries', {body: input, scope: true}),
 
     getProjectReport: (from: Date, to: Date) =>
-      call<ProjectReport>(host, 'project/report', {method: 'POST', body: {from: from.toISOString(), to: to.toISOString()}, scope: true})
+      request<ProjectReport>(host, 'project/report', {method: 'POST', body: {from: from.toISOString(), to: to.toISOString()}, scope: true}),
+    backfillProject: (from: Date, to: Date) =>
+      job<{changed: boolean}>(host, 'project/backfill', {body: {from: from.toISOString(), to: to.toISOString()}, scope: true})
   };
 }
 

@@ -1,4 +1,5 @@
 const common = require('./common');
+const jobs = require('./jobs');
 
 exports.httpHandler = {
   endpoints: [
@@ -12,32 +13,35 @@ exports.httpHandler = {
     },
     {
       scope: 'global',
-      method: 'GET',
+      method: 'POST',
       path: 'options',
       handle: (ctx) => {
-        common.respond(ctx, (lang) => ({
-          options: common.listOptions(ctx.currentUser, lang, ctx.request.getParameter('field'), common.optionRefs(ctx))
-        }));
+        common.respond(ctx, (lang) => {
+          const body = common.requestBody(ctx);
+          return jobs.start(ctx, lang, 'options', {field: body.field, refs: body.refs || {}});
+        });
       }
     },
     {
       scope: 'global',
-      method: 'GET',
-      path: 'entries',
+      method: 'POST',
+      path: 'list',
       handle: (ctx) => {
-        common.respond(ctx, (lang) => ({
-          entries: common.listEntries(ctx.currentUser, lang, ctx.request.getParameter('from'), ctx.request.getParameter('to'))
-        }));
+        common.respond(ctx, (lang) => {
+          const body = common.requestBody(ctx);
+          return jobs.start(ctx, lang, 'entries', {from: body.from, to: body.to});
+        });
       }
     },
     {
       scope: 'global',
-      method: 'GET',
+      method: 'POST',
       path: 'calendar',
       handle: (ctx) => {
-        common.respond(ctx, (lang) => common.listCalendar(
-          ctx.currentUser, lang, ctx.request.getParameter('fromDate'), ctx.request.getParameter('toDate')
-        ));
+        common.respond(ctx, (lang) => {
+          const body = common.requestBody(ctx);
+          return jobs.start(ctx, lang, 'calendar', {fromDate: body.fromDate, toDate: body.toDate});
+        });
       }
     },
     {
@@ -45,11 +49,9 @@ exports.httpHandler = {
       method: 'POST',
       path: 'entries',
       handle: (ctx) => {
-        common.respond(ctx, (lang) => {
-          const body = common.requestBody(ctx);
-          return {entry: common.createEntry(ctx.currentUser, lang, body, null).entry};
-        });
+        common.respond(ctx, (lang) => jobs.start(ctx, lang, 'create', {body: common.requestBody(ctx)}));
       }
     }
-  ]
+  ],
+  asyncFunctions: jobs.asyncFunctions
 };

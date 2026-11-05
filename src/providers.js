@@ -1,8 +1,8 @@
 const http = require('@jetbrains/youtrack-scripting-api/http');
 const i18n = require('./i18n');
 
-const MAX_PAGES = 20;
 const CLOCKODO = 'clocko:do';
+const BASE_URL = 'https://my.clockodo.com/api';
 
 function toClockodoTime(iso) {
   const date = new Date(iso);
@@ -34,61 +34,47 @@ function clockodoError(response) {
   return i18n.fail('providerStatus', {provider: CLOCKODO, status: response.code});
 }
 
-function clockodoConnection(session) {
-  const credentials = session.credentials;
+function clockodoConnection(credentials, lang) {
   if (!credentials || !credentials.email || !credentials.apiKey) {
     i18n.fail('credentialsMissing');
   }
-  const connection = new http.Connection('https://my.clockodo.com/api');
+  const connection = new http.Connection(BASE_URL);
   connection.addHeader('X-ClockodoApiUser', credentials.email);
   connection.addHeader('X-ClockodoApiKey', credentials.apiKey);
   connection.addHeader('X-Clockodo-External-Application', 'YouTrack;support@jj-ideenschmiede.de');
   connection.addHeader('X-ClockodoEnableIsoUtcDateTimes', '1');
-  connection.addHeader('Accept-Language', session.lang === 'de' ? 'de' : 'en');
+  connection.addHeader('Accept-Language', lang === 'de' ? 'de' : 'en');
   connection.addHeader('Accept', 'application/json');
   connection.addHeader('Content-Type', 'application/json');
   return connection;
 }
 
-function clockodoRequest(session, method, path, query, payload) {
-  const connection = clockodoConnection(session);
-  let response;
-  if (method === 'GET') {
-    response = connection.getSync(path, query || []);
-  } else if (method === 'POST') {
-    response = connection.postSync(path, query || [], JSON.stringify(payload || {}));
-  } else if (method === 'DELETE') {
-    response = connection.deleteSync(path, query || []);
-  } else {
-    i18n.fail('unsupportedMethod', {method: method});
-  }
-  if (!response.isSuccess) {
-    clockodoError(response);
-  }
-  return JSON.parse(response.response);
+function listRequest(path, query, itemsKey, itemsPerPage) {
+  return {method: 'GET', path: path, query: query, list: itemsKey, perPage: itemsPerPage, page: 1};
 }
 
-function clockodoList(session, path, query, itemsKey, itemsPerPage) {
-  const items = [];
-  for (let page = 1; page <= MAX_PAGES; page++) {
-    const pageQuery = query.concat([
-      {name: 'page', value: String(page)},
-      {name: 'items_per_page', value: String(itemsPerPage)}
-    ]);
-    const body = clockodoRequest(session, 'GET', path, pageQuery);
-    const chunk = body[itemsKey] || [];
-    Array.prototype.push.apply(items, chunk);
-    if (!body.paging || body.paging.current_page >= body.paging.count_pages || chunk.length === 0) {
-      break;
-    }
+function pageQuery(request) {
+  if (!request.list) {
+    return request.query || [];
   }
-  return items;
+  return (request.query || []).concat([
+    {name: 'page', value: String(request.page)},
+    {name: 'items_per_page', value: String(request.perPage)}
+  ]);
 }
 
-function sortedOptions(session, items) {
+function nextPage(request, body) {
+  if (!request.list || !body.paging || body.paging.current_page >= body.paging.count_pages ||
+    !(body[request.list] || []).length) {
+    return null;
+  }
+  return Object.assign({}, request, {page: request.page + 1});
+}
+
+function sortedOptions(lang, items) {
   return items
     .map((item) => ({id: String(item.id), label: item.name}))
-    .sort((a, b) => a.label.localeCompare(b.label, session.lang));
+    .sort((a, b) => a.label.localeCompare(b.label, lang));
 }
 
 function namedRef(id, name) {
@@ -153,53 +139,7 @@ function eachDate(fromDate, toDate, callback) {
   }
 }
 
-function clockodoAbsences(session, range) {
-  const body = clockodoRequest(session, 'GET', '/v4/absences', [
-    {name: 'filter[users_id]', value: session.account.externalUserId},
-    {name: 'filter[year]', value: yearsBetween(range.fromDate, range.toDate).join(',')}
-  ]);
-  const days = [];
-  (body.data || []).forEach((absence) => {
-    if (absence.status !== ABSENCE_APPROVED && absence.status !== ABSENCE_REQUESTED) {
-      return;
-    }
-    const type = ABSENCE_TYPES[absence.type] || {kind: 'other', label: {de: 'Abwesend', en: 'Absent'}};
-    const from = absence.date_since > range.fromDate ? absence.date_since : range.fromDate;
-    const to = absence.date_until < range.toDate ? absence.date_until : range.toDate;
-    const halfDay = absence.date_since === absence.date_until && absence.count_days !== null &&
-      absence.count_days !== undefined && absence.count_days < 1;
-    eachDate(from, to, (date) => {
-      days.push({
-        date: date,
-        kind: type.kind,
-        label: i18n.pick(session.lang, type.label),
-        requested: absence.status === ABSENCE_REQUESTED,
-        halfDay: halfDay,
-        hours: absence.type === 3 ? absence.count_hours : null
-      });
-    });
-  });
-  return days;
-}
-
-function clockodoHolidays(session, range) {
-  const days = [];
-  yearsBetween(range.fromDate, range.toDate).forEach((year) => {
-    const body = clockodoRequest(session, 'GET', '/v2/usersNonbusinessDays', [
-      {name: 'year', value: String(year)},
-      {name: 'filter[users_id]', value: session.account.externalUserId},
-      {name: 'items_per_page', value: '100'}
-    ]);
-    (body.data || []).forEach((row) => {
-      (row.days || []).forEach((day) => {
-        if (day.evaluated_date >= range.fromDate && day.evaluated_date <= range.toDate) {
-          days.push({date: day.evaluated_date, name: day.name, halfDay: day.half_day === true});
-        }
-      });
-    });
-  });
-  return days;
-}
+const OPTION_PATHS = {customer: '/v3/customers', project: '/v4/projects', service: '/v4/services'};
 
 const clockodo = {
   id: 'clockodo',
@@ -236,8 +176,14 @@ const clockodo = {
     {label: {de: 'clocko:do öffnen', en: 'Open clocko:do'}, url: 'https://my.clockodo.com/'}
   ],
 
-  verify: (session) => {
-    const body = clockodoRequest(session, 'GET', '/v4/users/me');
+  connection: clockodoConnection,
+  fail: clockodoError,
+  pageQuery: pageQuery,
+  nextPage: nextPage,
+
+  verifyRequest: () => ({method: 'GET', path: '/v4/users/me'}),
+
+  parseVerify: (body, credentials) => {
     const user = body.data;
     if (!user || !user.id) {
       i18n.fail('providerNoProfile', {provider: CLOCKODO});
@@ -248,36 +194,32 @@ const clockodo = {
     return {
       externalUserId: String(user.id),
       name: user.name,
-      email: user.email || session.credentials.email,
+      email: user.email || credentials.email,
       company: null
     };
   },
 
-  listOptions: (session, field, refs) => {
-    if (field === 'customer') {
-      return sortedOptions(session,
-        clockodoList(session, '/v3/customers', [{name: 'filter[active]', value: 'true'}], 'data', 1000));
+  optionsRequest: (field, refs) => {
+    if (field === 'customer' || field === 'service') {
+      return listRequest(OPTION_PATHS[field], [{name: 'filter[active]', value: 'true'}], 'data', 1000);
     }
     if (field === 'project') {
       if (!refs.customer) {
-        return [];
+        return null;
       }
-      return sortedOptions(session, clockodoList(session, '/v4/projects', [
+      return listRequest(OPTION_PATHS.project, [
         {name: 'filter[customers_id]', value: String(refs.customer)},
         {name: 'filter[active]', value: 'true'},
         {name: 'filter[completed]', value: 'false'}
-      ], 'data', 1000));
-    }
-    if (field === 'service') {
-      return sortedOptions(session,
-        clockodoList(session, '/v4/services', [{name: 'filter[active]', value: 'true'}], 'data', 1000));
+      ], 'data', 1000);
     }
     return i18n.fail('unknownField', {field: field});
   },
 
-  findOption: (session, field, refs, name) => {
-    const paths = {customer: '/v3/customers', project: '/v4/projects', service: '/v4/services'};
-    if (!paths[field] || (field === 'project' && !refs.customer)) {
+  parseOptions: (lang, items) => sortedOptions(lang, items),
+
+  findRequest: (field, refs, name) => {
+    if (!OPTION_PATHS[field] || (field === 'project' && !refs.customer)) {
       return null;
     }
     const query = [
@@ -287,45 +229,102 @@ const clockodo = {
     if (field === 'project') {
       query.push({name: 'filter[customers_id]', value: String(refs.customer)});
     }
+    return listRequest(OPTION_PATHS[field], query, 'data', 100);
+  },
+
+  matchOption: (items, name) => {
     const wanted = name.trim().toLowerCase();
-    const match = clockodoList(session, paths[field], query, 'data', 100)
-      .find((item) => String(item.name).trim().toLowerCase() === wanted);
+    const match = items.find((item) => String(item.name).trim().toLowerCase() === wanted);
     return match ? {id: String(match.id), label: match.name} : null;
   },
 
-  listEntries: (session, range, withNames, allUsers) => {
+  entriesRequest: (account, range, withNames, allUsers) => {
     const query = [
       {name: 'time_since', value: toClockodoTime(range.from)},
       {name: 'time_until', value: toClockodoTime(range.to)}
     ];
     if (!allUsers) {
-      query.push({name: 'filter[users_id]', value: session.account.externalUserId});
+      query.push({name: 'filter[users_id]', value: account.externalUserId});
     }
     if (withNames) {
       query.push({name: 'enhanced_list', value: 'true'});
     }
-    return clockodoList(session, '/v2/entries', query, 'entries', 1000)
-      .filter((entry) => !entry.type || entry.type === 1)
-      .map(mapClockodoEntry);
+    return listRequest('/v2/entries', query, 'entries', 1000);
   },
 
-  listCalendar: (session, range) => {
-    let absences = [];
-    let holidays = [];
-    try {
-      absences = clockodoAbsences(session, range);
-    } catch (e) {
-      console.warn('external-time-tracking: absences unavailable: ' + (e.message || e));
-    }
-    try {
-      holidays = clockodoHolidays(session, range);
-    } catch (e) {
-      console.warn('external-time-tracking: holidays unavailable: ' + (e.message || e));
-    }
+  parseEntries: (items) => items
+    .filter((entry) => !entry.type || entry.type === 1)
+    .map(mapClockodoEntry),
+
+  calendarRequests: (account, range) => {
+    const requests = [{
+      method: 'GET',
+      path: '/v4/absences',
+      query: [
+        {name: 'filter[users_id]', value: account.externalUserId},
+        {name: 'filter[year]', value: yearsBetween(range.fromDate, range.toDate).join(',')}
+      ],
+      optional: true,
+      key: 'absences'
+    }];
+    yearsBetween(range.fromDate, range.toDate).forEach((year) => {
+      requests.push({
+        method: 'GET',
+        path: '/v2/usersNonbusinessDays',
+        query: [
+          {name: 'year', value: String(year)},
+          {name: 'filter[users_id]', value: account.externalUserId},
+          {name: 'items_per_page', value: '100'}
+        ],
+        optional: true,
+        key: 'holidays'
+      });
+    });
+    return requests;
+  },
+
+  parseCalendar: (lang, range, results) => {
+    const absences = [];
+    const holidays = [];
+    results.forEach((result) => {
+      if (!result.body) {
+        return;
+      }
+      if (result.key === 'absences') {
+        (result.body.data || []).forEach((absence) => {
+          if (absence.status !== ABSENCE_APPROVED && absence.status !== ABSENCE_REQUESTED) {
+            return;
+          }
+          const type = ABSENCE_TYPES[absence.type] || {kind: 'other', label: {de: 'Abwesend', en: 'Absent'}};
+          const from = absence.date_since > range.fromDate ? absence.date_since : range.fromDate;
+          const to = absence.date_until < range.toDate ? absence.date_until : range.toDate;
+          const halfDay = absence.date_since === absence.date_until && absence.count_days !== null &&
+            absence.count_days !== undefined && absence.count_days < 1;
+          eachDate(from, to, (date) => {
+            absences.push({
+              date: date,
+              kind: type.kind,
+              label: i18n.pick(lang, type.label),
+              requested: absence.status === ABSENCE_REQUESTED,
+              halfDay: halfDay,
+              hours: absence.type === 3 ? absence.count_hours : null
+            });
+          });
+        });
+        return;
+      }
+      (result.body.data || []).forEach((row) => {
+        (row.days || []).forEach((day) => {
+          if (day.evaluated_date >= range.fromDate && day.evaluated_date <= range.toDate) {
+            holidays.push({date: day.evaluated_date, name: day.name, halfDay: day.half_day === true});
+          }
+        });
+      });
+    });
     return {absences: absences, holidays: holidays};
   },
 
-  createEntry: (session, input) => {
+  createRequest: (input) => {
     const payload = {
       customers_id: Number(input.refs.customer),
       services_id: Number(input.refs.service),
@@ -337,9 +336,10 @@ const clockodo = {
     if (input.refs.project) {
       payload.projects_id = Number(input.refs.project);
     }
-    const body = clockodoRequest(session, 'POST', '/v2/entries', [], payload);
-    return mapClockodoEntry(body.entry);
-  }
+    return {method: 'POST', path: '/v2/entries', query: [], payload: payload};
+  },
+
+  parseCreate: (body) => mapClockodoEntry(body.entry)
 };
 
 const PROVIDERS = [clockodo];

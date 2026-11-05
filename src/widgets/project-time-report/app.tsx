@@ -176,6 +176,15 @@ const AppComponent: React.FunctionComponent = () => {
       const report = await api.getProjectReport(start, end);
       setEntries(report.entries);
       setShowAll(false);
+      if (report.needsRefs) {
+        api.backfillProject(start, end)
+          .then(async result => {
+            if (result.changed) {
+              setEntries((await api.getProjectReport(start, end)).entries);
+            }
+          })
+          .catch(() => undefined);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : t('reportLoadFailed'));
     } finally {

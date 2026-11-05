@@ -144,4 +144,5 @@ export interface ProjectReportEntry {
 
 export interface ProjectReport {
   entries: ProjectReportEntry[];
+  needsRefs?: boolean;
 }

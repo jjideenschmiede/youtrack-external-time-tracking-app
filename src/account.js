@@ -1,4 +1,5 @@
 const common = require('./common');
+const jobs = require('./jobs');
 
 exports.httpHandler = {
   endpoints: [
@@ -17,7 +18,7 @@ exports.httpHandler = {
       handle: (ctx) => {
         common.respond(ctx, (lang) => {
           const body = common.requestBody(ctx);
-          return common.connect(ctx.currentUser, lang, body.provider, body.credentials);
+          return jobs.start(ctx, lang, 'connect', {provider: body.provider, credentials: body.credentials});
         });
       }
     },
@@ -28,6 +29,15 @@ exports.httpHandler = {
       handle: (ctx) => {
         common.respond(ctx, (lang) => common.disconnect(ctx.currentUser, lang));
       }
+    },
+    {
+      scope: 'global',
+      method: 'GET',
+      path: 'job',
+      handle: (ctx) => {
+        common.respond(ctx, () => jobs.readJob(ctx.currentUser, ctx.request.getParameter('id')));
+      }
     }
-  ]
+  ],
+  asyncFunctions: jobs.asyncFunctions
 };

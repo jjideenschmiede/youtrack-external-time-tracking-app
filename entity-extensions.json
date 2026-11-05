@@ -11,6 +11,9 @@
         },
         "timeTrackingPreferences": {
           "type": "string"
+        },
+        "timeTrackingJobs": {
+          "type": "string"
         }
       }
     },
@@ -18,9 +21,6 @@
       "entityType": "Issue",
       "properties": {
         "timeTrackingEntries": {
-          "type": "string"
-        },
-        "timeTrackingRefreshed": {
           "type": "string"
         }
       }

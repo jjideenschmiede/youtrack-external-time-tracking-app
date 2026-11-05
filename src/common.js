@@ -4,7 +4,6 @@ const i18n = require('./i18n');
 
 const ISSUE_ID_PATTERN = /\b[A-Z][A-Z0-9_]*-\d+\b/g;
 const MAX_ISSUE_REFS = 200;
-const RESERVED_PARAMETERS = ['field', 'lang'];
 
 function parseJson(value, fallback) {
   if (!value) {
@@ -34,16 +33,6 @@ function requestBody(ctx) {
   } catch {
     return i18n.fail('invalidBody');
   }
-}
-
-function optionRefs(ctx) {
-  const refs = {};
-  ctx.request.parameterNames.forEach((name) => {
-    if (RESERVED_PARAMETERS.indexOf(name) === -1) {
-      refs[name] = ctx.request.getParameter(name);
-    }
-  });
-  return refs;
 }
 
 function isGuest(user) {
@@ -104,7 +93,21 @@ function accountStatus(user, lang) {
   };
 }
 
-function connect(user, lang, providerId, credentials) {
+function saveConnection(user, lang, provider, profile, credentials) {
+  user.extensionProperties.timeTrackingAccount = JSON.stringify({
+    provider: provider.id,
+    externalUserId: profile.externalUserId,
+    name: profile.name,
+    email: profile.email,
+    company: profile.company,
+    connectedAt: Date.now()
+  });
+  user.extensionProperties.timeTrackingCredentials = JSON.stringify(credentials);
+  user.extensionProperties.timeTrackingPreferences = null;
+  return accountStatus(user, lang);
+}
+
+function cleanCredentials(user, providerId, credentials) {
   if (isGuest(user)) {
     i18n.fail('guestNotAllowed');
   }
@@ -120,19 +123,7 @@ function connect(user, lang, providerId, credentials) {
     }
     cleaned[field.key] = value;
   });
-
-  const profile = provider.verify({provider: provider, account: null, credentials: cleaned, lang: lang});
-  user.extensionProperties.timeTrackingAccount = JSON.stringify({
-    provider: provider.id,
-    externalUserId: profile.externalUserId,
-    name: profile.name,
-    email: profile.email,
-    company: profile.company,
-    connectedAt: Date.now()
-  });
-  user.extensionProperties.timeTrackingCredentials = JSON.stringify(cleaned);
-  user.extensionProperties.timeTrackingPreferences = null;
-  return accountStatus(user, lang);
+  return {provider: provider, credentials: cleaned};
 }
 
 function disconnect(user, lang) {
@@ -187,68 +178,12 @@ function readFieldValue(issue, user, fieldName) {
   return null;
 }
 
-function findOptionByName(session, field, refs, name) {
-  const provider = session.provider;
-  if (typeof provider.findOption === 'function') {
-    return provider.findOption(session, field, refs, name);
-  }
-  const wanted = name.toLowerCase();
-  return provider.listOptions(session, field, refs).find((option) => option.label.toLowerCase() === wanted) || null;
-}
-
 function clearDependents(fields, refs, mapped, parentKey) {
   fields.forEach((child) => {
     if (child.dependsOn === parentKey && !mapped[child.key]) {
       refs[child.key] = null;
     }
   });
-}
-
-function issueEntryForm(ctx, lang) {
-  const form = entryForm(ctx.currentUser, lang, ctx.issue.project.key);
-  const session = openSession(ctx.currentUser, lang);
-  const refs = form.defaults.refs;
-  const warnings = [];
-  const mapped = {};
-
-  form.fields.forEach((field) => {
-    const sourceField = ctx.settings[field.key + 'Field'];
-    if (!sourceField) {
-      return;
-    }
-    const value = readFieldValue(ctx.issue, ctx.currentUser, sourceField);
-    if (!value) {
-      if (refs[field.key]) {
-        refs[field.key] = null;
-        clearDependents(form.fields, refs, mapped, field.key);
-      }
-      return;
-    }
-    const parentRefs = {};
-    if (field.dependsOn) {
-      parentRefs[field.dependsOn] = refs[field.dependsOn] ? refs[field.dependsOn].id : null;
-    }
-    const option = findOptionByName(session, field.key, parentRefs, value);
-    if (!option) {
-      warnings.push(i18n.translate(lang, 'mappingNotFound', {
-        field: field.label,
-        value: value,
-        source: sourceField,
-        provider: session.provider.name
-      }));
-      return;
-    }
-    const changed = !refs[field.key] || refs[field.key].id !== option.id;
-    refs[field.key] = option;
-    mapped[field.key] = sourceField;
-    if (changed) {
-      clearDependents(form.fields, refs, mapped, field.key);
-    }
-  });
-
-  form.mappedFields = mapped;
-  form.warnings = warnings;
-  return form;
 }
 
 function rememberSelection(user, projectKey, refs, billable) {
@@ -259,15 +194,6 @@ function rememberSelection(user, projectKey, refs, billable) {
     preferences.byProject[projectKey] = entry;
   }
   user.extensionProperties.timeTrackingPreferences = JSON.stringify(preferences);
-}
-
-function listOptions(user, lang, field, refs) {
-  const session = openSession(user, lang);
-  const known = session.provider.entryFields.some((entryField) => entryField.key === field);
-  if (!known) {
-    i18n.fail('unknownField', {field: field});
-  }
-  return session.provider.listOptions(session, field, refs);
 }
 
 function validateInput(provider, body) {
@@ -303,6 +229,80 @@ function validateInput(provider, body) {
   };
 }
 
+function rememberCreated(user, projectKey, input, labels) {
+  const remembered = {};
+  Object.keys(input.refs).forEach((key) => {
+    remembered[key] = input.refs[key]
+      ? {id: input.refs[key], label: labels && labels[key] ? String(labels[key]) : input.refs[key]}
+      : null;
+  });
+  rememberSelection(user, projectKey, remembered, input.billable);
+  const refs = {};
+  Object.keys(remembered).forEach((key) => {
+    refs[key] = remembered[key] ? {id: remembered[key].id, name: remembered[key].label} : null;
+  });
+  return refs;
+}
+
+function linkIssues(entries, user) {
+  const refs = issueRefs(entries.map((entry) => entry.text), user);
+  entries.forEach((entry) => {
+    const found = (entry.text.match(ISSUE_ID_PATTERN) || [])
+      .map((id) => refs[id])
+      .filter((ref) => !!ref);
+    entry.issues = found.filter((ref, index) => found.findIndex((other) => other.id === ref.id) === index);
+  });
+  entries.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+  return entries;
+}
+
+function readRange(from, to, maxDays, tooLongKey) {
+  const range = {from: new Date(from), to: new Date(to)};
+  if (isNaN(range.from.getTime()) || isNaN(range.to.getTime()) || range.to <= range.from) {
+    i18n.fail('invalidRange');
+  }
+  if (range.to.getTime() - range.from.getTime() > maxDays * 24 * 3600 * 1000) {
+    i18n.fail(tooLongKey);
+  }
+  return {from: range.from.toISOString(), to: range.to.toISOString()};
+}
+
+function readDateRange(fromDate, toDate) {
+  const pattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (!pattern.test(fromDate || '') || !pattern.test(toDate || '') || toDate < fromDate) {
+    i18n.fail('invalidRange');
+  }
+  return {fromDate: fromDate, toDate: toDate};
+}
+
+function issueSummary(user, lang, entries) {
+  let total = 0;
+  let mine = 0;
+  const visible = entries
+    .map((entry) => {
+      const isMine = entry.userLogin === user.login;
+      if (!entry.deleted) {
+        total += entry.durationSeconds;
+        if (isMine) {
+          mine += entry.durationSeconds;
+        }
+      }
+      return Object.assign({}, entry, {mine: isMine, deleted: entry.deleted === true});
+    })
+    .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
+
+  return {
+    account: publicAccount(user, lang),
+    totalSeconds: total,
+    mySeconds: mine,
+    entries: visible
+  };
+}
+
+function writeIssueEntries(issue, entries) {
+  issue.extensionProperties.timeTrackingEntries = entries.length > 0 ? JSON.stringify(entries) : null;
+}
+
 function readIssueEntries(issue) {
   const entries = parseJson(issue.extensionProperties.timeTrackingEntries, []);
   return Array.isArray(entries) ? entries : [];
@@ -323,26 +323,6 @@ function indexIssue(issue) {
     index.issues.push(issue.id);
     writeProjectIndex(issue.project, index);
   }
-}
-
-function createEntry(user, lang, body, projectKey) {
-  const session = openSession(user, lang);
-  const input = validateInput(session.provider, body);
-  const entry = session.provider.createEntry(session, input);
-
-  const labels = body.labels || {};
-  const remembered = {};
-  Object.keys(input.refs).forEach((key) => {
-    remembered[key] = input.refs[key]
-      ? {id: input.refs[key], label: labels[key] ? String(labels[key]) : input.refs[key]}
-      : null;
-  });
-  rememberSelection(user, projectKey, remembered, input.billable);
-  const refs = {};
-  Object.keys(remembered).forEach((key) => {
-    refs[key] = remembered[key] ? {id: remembered[key].id, name: remembered[key].label} : null;
-  });
-  return {entry: entry, provider: session.provider, refs: refs};
 }
 
 function issueRefs(texts, currentUser) {
@@ -371,60 +351,28 @@ function issueRefs(texts, currentUser) {
   return cache;
 }
 
-function listEntries(user, lang, from, to) {
-  const session = openSession(user, lang);
-  const range = {from: new Date(from), to: new Date(to)};
-  if (isNaN(range.from.getTime()) || isNaN(range.to.getTime()) || range.to <= range.from) {
-    i18n.fail('invalidRange');
-  }
-  if (range.to.getTime() - range.from.getTime() > 62 * 24 * 3600 * 1000) {
-    i18n.fail('rangeTooLong');
-  }
-  const entries = session.provider.listEntries(
-    session,
-    {from: range.from.toISOString(), to: range.to.toISOString()},
-    true
-  );
-  const refs = issueRefs(entries.map((entry) => entry.text), user);
-  entries.forEach((entry) => {
-    const found = (entry.text.match(ISSUE_ID_PATTERN) || [])
-      .map((id) => refs[id])
-      .filter((ref) => !!ref);
-    entry.issues = found.filter((ref, index) => found.findIndex((other) => other.id === ref.id) === index);
-  });
-  entries.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-  return entries;
-}
-
-function listCalendar(user, lang, fromDate, toDate) {
-  const session = openSession(user, lang);
-  const pattern = /^\d{4}-\d{2}-\d{2}$/;
-  if (!pattern.test(fromDate || '') || !pattern.test(toDate || '') || toDate < fromDate) {
-    i18n.fail('invalidRange');
-  }
-  if (typeof session.provider.listCalendar !== 'function') {
-    return {absences: [], holidays: []};
-  }
-  return session.provider.listCalendar(session, {fromDate: fromDate, toDate: toDate});
-}
-
 exports.parseJson = parseJson;
-exports.readIssueEntries = readIssueEntries;
-exports.readProjectIndex = readProjectIndex;
-exports.writeProjectIndex = writeProjectIndex;
-exports.indexIssue = indexIssue;
 exports.respond = respond;
 exports.requestBody = requestBody;
-exports.optionRefs = optionRefs;
+exports.isGuest = isGuest;
 exports.readAccount = readAccount;
 exports.openSession = openSession;
 exports.publicAccount = publicAccount;
 exports.accountStatus = accountStatus;
-exports.connect = connect;
+exports.cleanCredentials = cleanCredentials;
+exports.saveConnection = saveConnection;
 exports.disconnect = disconnect;
 exports.entryForm = entryForm;
-exports.issueEntryForm = issueEntryForm;
-exports.listOptions = listOptions;
-exports.createEntry = createEntry;
-exports.listEntries = listEntries;
-exports.listCalendar = listCalendar;
+exports.readFieldValue = readFieldValue;
+exports.clearDependents = clearDependents;
+exports.validateInput = validateInput;
+exports.rememberCreated = rememberCreated;
+exports.linkIssues = linkIssues;
+exports.readRange = readRange;
+exports.readDateRange = readDateRange;
+exports.issueSummary = issueSummary;
+exports.readIssueEntries = readIssueEntries;
+exports.writeIssueEntries = writeIssueEntries;
+exports.readProjectIndex = readProjectIndex;
+exports.writeProjectIndex = writeProjectIndex;
+exports.indexIssue = indexIssue;
