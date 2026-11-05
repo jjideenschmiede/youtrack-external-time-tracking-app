@@ -132,7 +132,7 @@
 }
 
 .panel-modal .panel-modal-close:hover .panel-modal-close-icon {
-  color: #D075B2;
+  color: var(--ett-hover-accent-color);
 }
 
 .panel-modal-icon {
