@@ -6,8 +6,6 @@ import Checkbox from '@jetbrains/ring-ui-built/components/checkbox/checkbox';
 import DatePicker from '@jetbrains/ring-ui-built/components/date-picker/date-picker';
 import Banner from '@jetbrains/ring-ui-built/components/banner/banner';
 import LoaderInline from '@jetbrains/ring-ui-built/components/loader-inline/loader-inline';
-import Panel from '@jetbrains/ring-ui-built/components/panel/panel';
-import {Content} from '@jetbrains/ring-ui-built/components/island/island';
 import type {Api} from './api';
 import {submitOnEnter} from './keyboard';
 import type {Calendar, EditableEntry, EntryField, EntryForm as EntryFormSchema, EntryInput, Option} from './types';
@@ -159,10 +157,9 @@ export const EntryForm: React.FC<{
   submitLabel?: string;
   onSubmit: (input: EntryInput) => Promise<void>;
   onCancel?: () => void;
-  variant?: 'inline' | 'dialog';
   initialSchema?: EntryFormSchema | null;
   editEntry?: EditableEntry | null;
-}> = ({api, defaultText, projectKey, loadForm, submitLabel, onSubmit, onCancel, variant = 'inline', initialSchema = null, editEntry = null}) => {
+}> = ({api, defaultText, projectKey, loadForm, submitLabel, onSubmit, onCancel, initialSchema = null, editEntry = null}) => {
   const [schema, setSchema] = useState<EntryFormSchema | null>(initialSchema);
   const [schemaError, setSchemaError] = useState<string | null>(null);
 
@@ -296,22 +293,12 @@ export const EntryForm: React.FC<{
     }
   };
 
-  const frame = (body: React.ReactNode, actions: React.ReactNode) => {
-    if (variant === 'dialog') {
-      return (
-        <>
-          <Content><div className="ett-form ett-dialog-body">{body}</div></Content>
-          {actions && <Panel>{actions}</Panel>}
-        </>
-      );
-    }
-    return (
-      <div className="ett-form">
-        {body}
-        {actions && <div className="ett-actions">{actions}</div>}
-      </div>
-    );
-  };
+  const frame = (body: React.ReactNode, actions: React.ReactNode) => (
+    <div className="ett-form">
+      {body}
+      {actions && <div className="ett-actions">{actions}</div>}
+    </div>
+  );
 
   const cancelButton = onCancel ? <Button onClick={onCancel} disabled={submitting}>{t('cancel')}</Button> : null;
 

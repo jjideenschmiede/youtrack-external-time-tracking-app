@@ -4,11 +4,11 @@ import Banner from '@jetbrains/ring-ui-built/components/banner/banner';
 import LoaderInline from '@jetbrains/ring-ui-built/components/loader-inline/loader-inline';
 import Tooltip from '@jetbrains/ring-ui-built/components/tooltip/tooltip';
 import addIcon from '@jetbrains/icons/add';
-import closeIcon from '@jetbrains/icons/close';
 import pencilIcon from '@jetbrains/icons/pencil';
 import {createApi} from '../common/api';
 import {AccountForm} from '../common/account-form';
 import {EntryForm} from '../common/entry-form';
+import {TimeDialog} from '../common/time-dialog';
 import {formatDuration, formatShortDate} from '../common/duration';
 import {loadIssueContext, type IssueContext} from '../common/issue-context';
 import {canEdit} from '../common/editable';
@@ -159,19 +159,6 @@ const AppComponent: React.FunctionComponent = () => {
     };
   }, [mode, modalReady]);
 
-  useEffect(() => {
-    if (mode !== 'add') {
-      return undefined;
-    }
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeEntry();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [mode, closeEntry]);
-
   const startConnect = useCallback(async () => {
     setMode('connect');
     if (!status) {
@@ -228,33 +215,20 @@ const AppComponent: React.FunctionComponent = () => {
       )}
 
       {mode === 'add' && account && (
-        <div className="panel-modal-backdrop">
-          <div className={`panel-modal ${modalReady && !closing ? '' : 'panel-modal--pending'}`} role="dialog" aria-modal="true" aria-label={t('logTime')}>
-            <Button
-              className="panel-modal-close"
-              iconClassName="panel-modal-close-icon"
-              icon={closeIcon}
-              aria-label={t('cancel')}
-              onClick={closeEntry}
-            />
-            <h2 className="panel-modal-title">
-              <img className="panel-modal-icon" src="widget-icon.svg" alt=""/>
-              {editing ? t('editTime') : t('logTime')}
-            </h2>
-            <EntryForm
-              key={editing ? editing.id : 'new'}
-              api={api}
-              defaultText={issue.defaultText}
-              projectKey={issue.projectKey}
-              loadForm={editing ? loadPlainForm : loadForm}
-              initialSchema={prefetched}
-              editEntry={editing ? {...editing, billable: editing.billable ?? null, refs: editing.refs ?? {}} : null}
-              submitLabel={editing ? t('save') : undefined}
-              onSubmit={submit}
-              onCancel={closeEntry}
-            />
-          </div>
-        </div>
+        <TimeDialog title={editing ? t('editTime') : t('logTime')} hidden={!modalReady || closing} onClose={closeEntry}>
+          <EntryForm
+            key={editing ? editing.id : 'new'}
+            api={api}
+            defaultText={issue.defaultText}
+            projectKey={issue.projectKey}
+            loadForm={editing ? loadPlainForm : loadForm}
+            initialSchema={prefetched}
+            editEntry={editing ? {...editing, billable: editing.billable ?? null, refs: editing.refs ?? {}} : null}
+            submitLabel={editing ? t('save') : undefined}
+            onSubmit={submit}
+            onCancel={closeEntry}
+          />
+        </TimeDialog>
       )}
 
       {mode === 'connect' && (

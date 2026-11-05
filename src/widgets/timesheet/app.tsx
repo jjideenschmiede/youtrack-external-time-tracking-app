@@ -4,8 +4,6 @@ import Heading from '@jetbrains/ring-ui-built/components/heading/heading';
 import Banner from '@jetbrains/ring-ui-built/components/banner/banner';
 import LoaderInline from '@jetbrains/ring-ui-built/components/loader-inline/loader-inline';
 import Link from '@jetbrains/ring-ui-built/components/link/link';
-import Dialog from '@jetbrains/ring-ui-built/components/dialog/dialog';
-import {Header} from '@jetbrains/ring-ui-built/components/island/island';
 import Text from '@jetbrains/ring-ui-built/components/text/text';
 import chevronLeftIcon from '@jetbrains/icons/chevron-left';
 import chevronRightIcon from '@jetbrains/icons/chevron-right';
@@ -14,6 +12,7 @@ import pencilIcon from '@jetbrains/icons/pencil';
 import {createApi} from '../common/api';
 import {AccountForm} from '../common/account-form';
 import {EntryForm} from '../common/entry-form';
+import {TimeDialog} from '../common/time-dialog';
 import {
   addDays,
   formatDay,
@@ -262,52 +261,34 @@ const AppComponent: React.FunctionComponent = () => {
         </div>
       )}
 
-      <Dialog
-        show={editing !== null}
-        label={t('editTime')}
-        trapFocus
-        showCloseButton
-        closeButtonInside
-        onCloseAttempt={() => setEditing(null)}
-      >
-        <Header>{t('editTime')}</Header>
-        {editing && (
+      {editing && (
+        <TimeDialog title={t('editTime')} overlay onClose={() => setEditing(null)}>
           <EntryForm
             key={editing.id}
             api={api}
             defaultText=""
             projectKey={null}
             loadForm={loadForm}
-            variant="dialog"
             editEntry={editing}
             submitLabel={t('save')}
             onSubmit={submitEdit}
             onCancel={() => setEditing(null)}
           />
-        )}
-      </Dialog>
+        </TimeDialog>
+      )}
 
-      <Dialog
-        show={dialogOpen}
-        label={t('logTime')}
-        trapFocus
-        showCloseButton
-        closeButtonInside
-        onCloseAttempt={() => setDialogOpen(false)}
-      >
-        <Header>{t('logTime')}</Header>
-        {dialogOpen && (
+      {dialogOpen && (
+        <TimeDialog title={t('logTime')} overlay onClose={() => setDialogOpen(false)}>
           <EntryForm
             api={api}
             defaultText=""
             projectKey={null}
             loadForm={loadForm}
-            variant="dialog"
             onSubmit={submit}
             onCancel={() => setDialogOpen(false)}
           />
-        )}
-      </Dialog>
+        </TimeDialog>
+      )}
     </div>
   );
 };

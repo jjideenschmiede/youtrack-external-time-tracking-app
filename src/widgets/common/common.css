@@ -125,12 +125,6 @@ body {
   }
 }
 
-.ett-dialog-body {
-  box-sizing: border-box;
-  width: 100%;
-  padding-top: var(--ring-unit);
-}
-
 .ett-description {
   min-height: calc(var(--ring-unit) * 6);
   resize: vertical;
@@ -167,20 +161,73 @@ body {
   --ett-hover-accent-color: #e864ba;
 }
 
-.ring-dialog-closeButton.ring-dialog-closeButtonInside {
-  --ring-button-text-color: var(--ring-icon-secondary-color);
-  --ring-button-background-color: transparent;
+.ett-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: calc(var(--ring-unit) * 2);
+  box-sizing: border-box;
+}
+
+.ett-modal-backdrop--overlay {
+  z-index: var(--ring-overlay-z-index);
+  background-color: rgba(var(--ring-dialog-overlay-components), var(--ring-dialog-overlay-opacity));
+}
+
+.ett-modal {
+  position: relative;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: 558px;
+  max-width: 100%;
+  margin: auto;
+  padding: 32px 68px 32px 65.5px;
+  border: 1px solid var(--ring-popup-border-color);
+  border-radius: var(--ring-border-radius-large);
+  background-color: var(--ring-content-background-color);
+  box-shadow: var(--ring-dialog-shadow);
+}
+
+.ett-modal--hidden {
+  visibility: hidden;
+}
+
+.ett-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 28px;
+}
+
+.ett-modal-close .ett-modal-close-icon {
   color: var(--ring-icon-secondary-color);
 }
 
-.ring-dialog-closeButton.ring-dialog-closeButtonInside .ring-dialog-closeIcon {
-  color: var(--ring-icon-secondary-color);
-}
-
-.ring-dialog-closeButton.ring-dialog-closeButtonInside:hover,
-.ring-dialog-closeButton.ring-dialog-closeButtonInside:focus-visible,
-.ring-dialog-closeButton.ring-dialog-closeButtonInside:hover .ring-dialog-closeIcon,
-.ring-dialog-closeButton.ring-dialog-closeButtonInside:focus-visible .ring-dialog-closeIcon {
-  --ring-button-text-color: var(--ett-hover-accent-color);
+.ett-modal-close:hover .ett-modal-close-icon,
+.ett-modal-close:focus-visible .ett-modal-close-icon {
   color: var(--ett-hover-accent-color);
+}
+
+.ett-modal .ett-actions {
+  padding-top: calc(var(--ring-unit) / 2);
+}
+
+.ett-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 25px -33.5px;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.ett-modal-icon {
+  position: relative;
+  top: -1px;
+  width: 24px;
+  height: 24px;
 }
