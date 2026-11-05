@@ -17,7 +17,6 @@ const en = {
   learnMore: 'Learn more',
   credentialsNotice: 'Your credentials are stored in YouTrack only and are never sent back to the browser. ' +
     'Time entries are created on your behalf with the selected provider.',
-  settingsTitle: 'External time tracking',
   settingsIntro: 'Connect your account with an external time tracking provider to log time directly from issues ' +
     'and see your weekly overview in YouTrack.',
   ownProfileOnly: 'The connection can only be set up in your own profile.',
@@ -41,7 +40,6 @@ const en = {
   billable: 'Billable',
   cancel: 'Cancel',
   logIn: 'Log in {provider}',
-  log: 'Log',
   logTime: 'Log Time',
   editTime: 'Edit Time',
   editEntry: 'Edit entry',
@@ -124,7 +122,6 @@ const de: Messages = {
   learnMore: 'Mehr erfahren',
   credentialsNotice: 'Deine Zugangsdaten werden nur in YouTrack gespeichert und nie an den Browser zurückgegeben. ' +
     'Zeiteinträge werden in deinem Namen beim gewählten Anbieter angelegt.',
-  settingsTitle: 'Externe Zeiterfassung',
   settingsIntro: 'Verbinde dein Konto bei einem externen Zeiterfassungsanbieter, um Zeiten direkt aus Tickets ' +
     'zu erfassen und deine Wochenübersicht in YouTrack zu sehen.',
   ownProfileOnly: 'Die Verbindung kann nur im eigenen Profil eingerichtet werden.',
@@ -148,7 +145,6 @@ const de: Messages = {
   billable: 'Abrechenbar',
   cancel: 'Abbrechen',
   logIn: 'In {provider} erfassen',
-  log: 'Erfassen',
   logTime: 'Zeit erfassen',
   editTime: 'Zeit bearbeiten',
   editEntry: 'Eintrag bearbeiten',

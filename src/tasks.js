@@ -44,11 +44,11 @@ function advanceForm(job, env) {
   while (state.index < fields.length) {
     const field = fields[state.index];
     const sourceField = env.settings[field.key + 'Field'];
-    const value = sourceField ? common.readFieldValue(env.issue, env.user, sourceField) : null;
     if (!sourceField) {
       state.index++;
       continue;
     }
+    const value = common.readFieldValue(env.issue, env.user, sourceField);
     if (!value) {
       if (refs[field.key]) {
         refs[field.key] = null;
@@ -196,16 +196,6 @@ function lockIsStale(account) {
   return !account.lock || !account.lock.checkedAt || Date.now() - account.lock.checkedAt > LOCK_MAX_AGE;
 }
 
-function labelRefs(input, labels) {
-  const refs = {};
-  Object.keys(input.refs).forEach((key) => {
-    refs[key] = input.refs[key]
-      ? {id: input.refs[key], name: labels && labels[key] ? String(labels[key]) : input.refs[key]}
-      : null;
-  });
-  return refs;
-}
-
 function findIssue(id) {
   try {
     return entities.Issue.findById(id);
@@ -280,7 +270,7 @@ exports.update = {
   next: (job, env, request, body) => {
     const provider = providers.find(job.provider);
     const entry = provider.parseUpdate(body);
-    const refs = labelRefs(job.state.input, job.state.labels);
+    const refs = common.labelRefs(job.state.input, job.state.labels);
     if (env.issue) {
       return done(common.issueSummary(env.user, job.lang, patchStoredEntry(env.issue, env.user, entry, refs)));
     }

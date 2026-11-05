@@ -27,7 +27,6 @@ const MESSAGES = {
     providerStatus: '{provider} antwortete mit Status {status}.',
     providerNoProfile: '{provider} hat kein Benutzerprofil geliefert.',
     providerUserInactive: 'Der {provider}-Benutzer ist deaktiviert.',
-    unsupportedMethod: 'Nicht unterstützte Methode: {method}',
     mappingNotFound: '{field} „{value}“ aus dem Ticketfeld „{source}“ wurde in {provider} nicht gefunden.'
   },
   en: {
@@ -55,7 +54,6 @@ const MESSAGES = {
     providerStatus: '{provider} responded with status {status}.',
     providerNoProfile: '{provider} did not return a user profile.',
     providerUserInactive: 'The {provider} user is deactivated.',
-    unsupportedMethod: 'Unsupported method: {method}',
     mappingNotFound: '{field} “{value}” from the issue field “{source}” was not found in {provider}.'
   }
 };

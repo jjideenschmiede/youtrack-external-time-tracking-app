@@ -244,18 +244,23 @@ function validateInput(provider, body) {
   };
 }
 
-function rememberCreated(user, projectKey, input, labels) {
-  const remembered = {};
+function labelRefs(input, labels) {
+  const refs = {};
   Object.keys(input.refs).forEach((key) => {
-    remembered[key] = input.refs[key]
-      ? {id: input.refs[key], label: labels && labels[key] ? String(labels[key]) : input.refs[key]}
+    refs[key] = input.refs[key]
+      ? {id: input.refs[key], name: labels && labels[key] ? String(labels[key]) : input.refs[key]}
       : null;
   });
-  rememberSelection(user, projectKey, remembered, input.billable);
-  const refs = {};
-  Object.keys(remembered).forEach((key) => {
-    refs[key] = remembered[key] ? {id: remembered[key].id, name: remembered[key].label} : null;
+  return refs;
+}
+
+function rememberCreated(user, projectKey, input, labels) {
+  const refs = labelRefs(input, labels);
+  const remembered = {};
+  Object.keys(refs).forEach((key) => {
+    remembered[key] = refs[key] ? {id: refs[key].id, label: refs[key].name} : null;
   });
+  rememberSelection(user, projectKey, remembered, input.billable);
   return refs;
 }
 
@@ -292,24 +297,18 @@ function readDateRange(fromDate, toDate) {
 
 function issueSummary(user, lang, entries) {
   let total = 0;
-  let mine = 0;
   const visible = entries
     .map((entry) => {
-      const isMine = entry.userLogin === user.login;
       if (!entry.deleted) {
         total += entry.durationSeconds;
-        if (isMine) {
-          mine += entry.durationSeconds;
-        }
       }
-      return Object.assign({}, entry, {mine: isMine, deleted: entry.deleted === true});
+      return Object.assign({}, entry, {mine: entry.userLogin === user.login, deleted: entry.deleted === true});
     })
     .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
 
   return {
     account: publicAccount(user, lang),
     totalSeconds: total,
-    mySeconds: mine,
     entries: visible
   };
 }
@@ -394,7 +393,6 @@ function issueRefs(texts, currentUser) {
 exports.parseJson = parseJson;
 exports.respond = respond;
 exports.requestBody = requestBody;
-exports.isGuest = isGuest;
 exports.readAccount = readAccount;
 exports.openSession = openSession;
 exports.publicAccount = publicAccount;
@@ -408,6 +406,7 @@ exports.entryForm = entryForm;
 exports.readFieldValue = readFieldValue;
 exports.clearDependents = clearDependents;
 exports.validateInput = validateInput;
+exports.labelRefs = labelRefs;
 exports.rememberCreated = rememberCreated;
 exports.linkIssues = linkIssues;
 exports.readRange = readRange;

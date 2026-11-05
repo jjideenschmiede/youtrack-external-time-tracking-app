@@ -114,7 +114,6 @@ export interface IssueEntry {
 export interface IssueSummary {
   account: Account | null;
   totalSeconds: number;
-  mySeconds: number;
   entries: IssueEntry[];
 }
 
