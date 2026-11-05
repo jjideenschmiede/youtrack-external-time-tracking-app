@@ -110,6 +110,7 @@ function saveConnection(user, lang, provider, profile, credentials) {
   user.extensionProperties.timeTrackingCredentials = JSON.stringify(credentials);
   user.extensionProperties.timeTrackingPreferences = null;
   user.extensionProperties.timeTrackingCache = null;
+  user.extensionProperties.timeTrackingClock = null;
   return accountStatus(user, lang);
 }
 
@@ -145,6 +146,7 @@ function disconnect(user, lang) {
   user.extensionProperties.timeTrackingCredentials = null;
   user.extensionProperties.timeTrackingPreferences = null;
   user.extensionProperties.timeTrackingCache = null;
+  user.extensionProperties.timeTrackingClock = null;
   return accountStatus(user, lang);
 }
 
@@ -211,18 +213,7 @@ function rememberSelection(user, projectKey, refs, billable) {
   user.extensionProperties.timeTrackingPreferences = JSON.stringify(preferences);
 }
 
-function validateInput(provider, body) {
-  const start = new Date(body.start);
-  const end = new Date(body.end);
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-    i18n.fail('invalidTimes');
-  }
-  if (end.getTime() <= start.getTime()) {
-    i18n.fail('endBeforeStart');
-  }
-  if (end.getTime() - start.getTime() > 24 * 3600 * 1000) {
-    i18n.fail('entryTooLong');
-  }
+function validateDetails(provider, body) {
   const text = typeof body.text === 'string' ? body.text.trim() : '';
   if (!text) {
     i18n.fail('textRequired');
@@ -235,12 +226,28 @@ function validateInput(provider, body) {
     }
     refs[field.key] = value;
   });
+  return {text: text, billable: body.billable === true, refs: refs};
+}
+
+function validateInput(provider, body) {
+  const start = new Date(body.start);
+  const end = new Date(body.end);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    i18n.fail('invalidTimes');
+  }
+  if (end.getTime() <= start.getTime()) {
+    i18n.fail('endBeforeStart');
+  }
+  if (end.getTime() - start.getTime() > 24 * 3600 * 1000) {
+    i18n.fail('entryTooLong');
+  }
+  const details = validateDetails(provider, body);
   return {
     start: start.toISOString(),
     end: end.toISOString(),
-    text: text,
-    billable: body.billable === true,
-    refs: refs
+    text: details.text,
+    billable: details.billable,
+    refs: details.refs
   };
 }
 
@@ -321,6 +328,22 @@ function issueEstimate(issue, settings) {
   return minutes > 0 ? minutes * 60 : null;
 }
 
+function readClock(user) {
+  return parseJson(user.extensionProperties.timeTrackingClock, null);
+}
+
+function writeClock(user, clock) {
+  const next = clock ? JSON.stringify(clock) : null;
+  if (user.extensionProperties.timeTrackingClock !== next) {
+    user.extensionProperties.timeTrackingClock = next;
+  }
+}
+
+function publicClock(user) {
+  const clock = readClock(user);
+  return clock ? {id: clock.id, start: clock.start, text: clock.text, issueId: clock.issueId || null} : null;
+}
+
 function issueSummary(user, lang, entries, estimateSeconds) {
   let total = 0;
   const visible = entries
@@ -336,6 +359,7 @@ function issueSummary(user, lang, entries, estimateSeconds) {
     account: publicAccount(user, lang),
     totalSeconds: total,
     estimateSeconds: estimateSeconds || null,
+    clock: publicClock(user),
     entries: visible
   };
 }
@@ -439,6 +463,10 @@ exports.linkIssues = linkIssues;
 exports.readRange = readRange;
 exports.readDateRange = readDateRange;
 exports.issueSummary = issueSummary;
+exports.validateDetails = validateDetails;
+exports.readClock = readClock;
+exports.writeClock = writeClock;
+exports.publicClock = publicClock;
 exports.issueEstimate = issueEstimate;
 exports.readCache = readCache;
 exports.writeCache = writeCache;

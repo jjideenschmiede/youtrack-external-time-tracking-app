@@ -428,3 +428,110 @@ exports.backfill = {
     return done({changed: changed});
   }
 };
+
+function attachStopped(user, provider, stopped, clock) {
+  if (!stopped || !clock || clock.id !== stopped.id || !clock.issueId) {
+    return null;
+  }
+  const issue = findIssue(clock.issueId);
+  if (!issue) {
+    return null;
+  }
+  const entries = common.readIssueEntries(issue);
+  if (entries.some((entry) => entry.id === stopped.id && entry.provider === provider.id)) {
+    patchStoredEntry(issue, user, stopped, clock.refs);
+    return issue;
+  }
+  entries.push({
+    id: stopped.id,
+    provider: provider.id,
+    start: stopped.start,
+    durationSeconds: stopped.durationSeconds,
+    text: stopped.text,
+    billable: stopped.billable === null ? clock.billable : stopped.billable,
+    refs: clock.refs,
+    userLogin: user.login,
+    userName: user.visibleName
+  });
+  common.writeIssueEntries(issue, entries);
+  common.indexIssue(issue);
+  return issue;
+}
+
+function clockResult(env, lang) {
+  if (env.issue) {
+    return common.issueSummary(env.user, lang, common.readIssueEntries(env.issue), common.issueEstimate(env.issue, env.settings));
+  }
+  return {clock: common.publicClock(env.user)};
+}
+
+exports.clockStatus = {
+  start: (job, env) => {
+    const session = common.openSession(env.user, job.lang);
+    job.provider = session.provider.id;
+    return send(session.provider.clockRequest());
+  },
+  next: (job, env, request, body) => {
+    const provider = providers.find(job.provider);
+    const clock = provider.parseClock(body);
+    const stored = common.readClock(env.user);
+    attachStopped(env.user, provider, clock.stopped, stored);
+    if (!clock.running) {
+      common.writeClock(env.user, null);
+    } else if (!stored || stored.id !== clock.running.id) {
+      common.writeClock(env.user, {id: clock.running.id, provider: provider.id, start: clock.running.start, text: clock.running.text, issueId: null});
+    }
+    return done(clockResult(env, job.lang));
+  }
+};
+
+exports.clockStart = {
+  start: (job, env) => {
+    const session = common.openSession(env.user, job.lang);
+    job.provider = session.provider.id;
+    const input = common.validateDetails(session.provider, job.params.body);
+    job.state = {input: input, labels: job.params.body.labels || {}};
+    job.params = {};
+    return send(session.provider.startClockRequest(input));
+  },
+  next: (job, env, request, body) => {
+    const provider = providers.find(job.provider);
+    const clock = provider.parseClock(body);
+    attachStopped(env.user, provider, clock.stopped, common.readClock(env.user));
+    const projectKey = env.issue ? env.issue.project.key : null;
+    const refs = common.rememberCreated(env.user, projectKey, job.state.input, job.state.labels);
+    common.writeClock(env.user, clock.running ? {
+      id: clock.running.id,
+      provider: provider.id,
+      start: clock.running.start,
+      text: clock.running.text,
+      issueId: env.issue ? env.issue.id : null,
+      billable: job.state.input.billable,
+      refs: refs
+    } : null);
+    return done(clockResult(env, job.lang));
+  }
+};
+
+exports.clockStop = {
+  start: (job, env) => {
+    const session = common.openSession(env.user, job.lang);
+    job.provider = session.provider.id;
+    const stored = common.readClock(env.user);
+    const id = job.params.id ? String(job.params.id) : stored && stored.id;
+    if (!id) {
+      i18n.fail('clockNotRunning');
+    }
+    return send(session.provider.stopClockRequest(id));
+  },
+  next: (job, env, request, body) => {
+    const provider = providers.find(job.provider);
+    const clock = provider.parseClock(body);
+    const stored = common.readClock(env.user);
+    attachStopped(env.user, provider, clock.stopped, stored);
+    if (!clock.running || (stored && clock.stopped && stored.id === clock.stopped.id)) {
+      common.writeClock(env.user, null);
+    }
+    return done(clockResult(env, job.lang));
+  }
+};

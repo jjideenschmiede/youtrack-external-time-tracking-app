@@ -1,6 +1,6 @@
 import type {HostAPI} from '../../../@types/globals';
 import {lang, t} from './i18n';
-import type {Account, AccountStatus, Calendar, EntryForm, EntryInput, IssueSummary, Option, ProjectReport, TimeEntry} from './types';
+import type {Account, AccountStatus, Calendar, EntryForm, EntryInput, IssueSummary, Option, ProjectReport, RunningClock, TimeEntry} from './types';
 
 type Result<T> = T & {error?: string};
 type Params = {method?: string; query?: Record<string, string>; body?: unknown; scope?: boolean};
@@ -91,6 +91,11 @@ export function createApi(host: HostAPI) {
       job<{entry: TimeEntry}>(host, 'timesheet/entries', {body: input}),
     updateEntry: (id: string, input: EntryInput, previousText: string) =>
       job<{entry: TimeEntry}>(host, 'timesheet/update', {body: {id, entry: input, previousText}}),
+
+    syncClock: () => job<{clock: RunningClock | null}>(host, 'timesheet/clock', {}),
+    stopClock: (id: string) => job<{clock: RunningClock | null}>(host, 'timesheet/clock/stop', {body: {id}}),
+    startIssueClock: (input: EntryInput) => job<IssueSummary>(host, 'issue/clock/start', {body: input, scope: true}),
+    stopIssueClock: () => job<IssueSummary>(host, 'issue/clock/stop', {scope: true}),
 
     getIssueSummary: () => request<IssueSummary>(host, 'issue/summary', {scope: true}),
     refreshIssue: () => job<{changed: boolean}>(host, 'issue/refresh', {scope: true}),

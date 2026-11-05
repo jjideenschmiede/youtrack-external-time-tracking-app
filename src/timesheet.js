@@ -62,6 +62,22 @@ exports.httpHandler = {
           return jobs.start(ctx, lang, 'update', {id: body.id, body: body.entry || {}, previousText: body.previousText});
         });
       }
+    },
+    {
+      scope: 'global',
+      method: 'POST',
+      path: 'clock',
+      handle: (ctx) => {
+        common.respond(ctx, (lang) => jobs.start(ctx, lang, 'clockStatus', {}));
+      }
+    },
+    {
+      scope: 'global',
+      method: 'POST',
+      path: 'clock/stop',
+      handle: (ctx) => {
+        common.respond(ctx, (lang) => jobs.start(ctx, lang, 'clockStop', {id: common.requestBody(ctx).id || null}));
+      }
     }
   ],
   asyncFunctions: jobs.asyncFunctions

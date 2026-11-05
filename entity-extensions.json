@@ -17,6 +17,9 @@
         },
         "timeTrackingCache": {
           "type": "string"
+        },
+        "timeTrackingClock": {
+          "type": "string"
         }
       }
     },

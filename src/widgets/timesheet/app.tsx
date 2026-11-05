@@ -9,6 +9,8 @@ import chevronLeftIcon from '@jetbrains/icons/chevron-left';
 import chevronRightIcon from '@jetbrains/icons/chevron-right';
 import newWindowIcon from '@jetbrains/icons/new-window';
 import pencilIcon from '@jetbrains/icons/pencil';
+import stopIcon from '@jetbrains/icons/stop';
+import {Elapsed} from '../common/elapsed';
 import {createApi} from '../common/api';
 import {AccountForm} from '../common/account-form';
 import {EntryForm} from '../common/entry-form';
@@ -69,7 +71,12 @@ function stripIssueIds(text: string, entry: TimeEntry): string {
   return result.trim();
 }
 
-const EntryRow: React.FC<{entry: TimeEntry; onEdit: ((entry: TimeEntry) => void) | null}> = ({entry, onEdit}) => {
+const EntryRow: React.FC<{
+  entry: TimeEntry;
+  onEdit: ((entry: TimeEntry) => void) | null;
+  onStop: ((entry: TimeEntry) => void) | null;
+  stopping: boolean;
+}> = ({entry, onEdit, onStop, stopping}) => {
   const start = new Date(entry.start);
   const end = entry.end ? new Date(entry.end) : null;
   const description = stripIssueIds(entry.text, entry);
@@ -78,7 +85,9 @@ const EntryRow: React.FC<{entry: TimeEntry; onEdit: ((entry: TimeEntry) => void)
       <span className="entry-time ett-muted">
         {end ? `${formatTime(start)} – ${formatTime(end)}` : `${formatTime(start)} – ${t('running')}`}
       </span>
-      <span className="entry-duration ett-duration">{formatDuration(entry.durationSeconds)}</span>
+      {end
+        ? <span className="entry-duration ett-duration">{formatDuration(entry.durationSeconds)}</span>
+        : <Elapsed start={entry.start} className="entry-duration entry-duration--running"/>}
       <div className="entry-main">
         <div className="entry-text">
           {entry.issues.map(issue => (
@@ -97,6 +106,17 @@ const EntryRow: React.FC<{entry: TimeEntry; onEdit: ((entry: TimeEntry) => void)
         {onEdit && (
           <Button inline icon={pencilIcon} aria-label={t('editEntry')} title={t('editEntry')} onClick={() => onEdit(entry)}/>
         )}
+        {onStop && (
+          <Button
+            inline
+            icon={stopIcon}
+            aria-label={t('stopClock')}
+            title={t('stopClock')}
+            loader={stopping}
+            disabled={stopping}
+            onClick={() => onStop(entry)}
+          />
+        )}
       </span>
     </div>
   );
@@ -113,6 +133,7 @@ const AppComponent: React.FunctionComponent = () => {
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TimeEntry | null>(null);
+  const [stopping, setStopping] = useState(false);
 
   useEffect(() => {
     api.getAccount()
@@ -170,6 +191,19 @@ const AppComponent: React.FunctionComponent = () => {
     host.alert(t('entryUpdated'));
     await loadEntries();
   }, [api, editing, loadEntries]);
+
+  const stopClock = useCallback(async (entry: TimeEntry) => {
+    setStopping(true);
+    try {
+      await api.stopClock(entry.id);
+      host.alert(t('clockStopped'));
+    } catch (e) {
+      host.alert(e instanceof Error ? e.message : t('saveFailed'));
+    } finally {
+      setStopping(false);
+    }
+    await loadEntries();
+  }, [api, loadEntries]);
 
   const days = useMemo(() => groupByDay(weekStart, entries ?? []), [weekStart, entries]);
   const weekTotal = days.reduce((sum, day) => sum + day.totalSeconds, 0);
@@ -254,6 +288,8 @@ const AppComponent: React.FunctionComponent = () => {
                     key={entry.id}
                     entry={entry}
                     onEdit={entry.end && canEdit(entry.start, status.account) ? setEditing : null}
+                    onStop={entry.end ? null : stopClock}
+                    stopping={stopping}
                   />
                 ))}
             </section>

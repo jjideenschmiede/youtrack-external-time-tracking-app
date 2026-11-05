@@ -50,6 +50,24 @@ exports.httpHandler = {
           return jobs.start(ctx, lang, 'update', {id: body.id, body: body.entry || {}});
         });
       }
+    },
+    {
+      scope: 'issue',
+      permissions: ['CREATE_WORK_ITEM'],
+      method: 'POST',
+      path: 'clock/start',
+      handle: (ctx) => {
+        common.respond(ctx, (lang) => jobs.start(ctx, lang, 'clockStart', {body: common.requestBody(ctx)}));
+      }
+    },
+    {
+      scope: 'issue',
+      permissions: ['CREATE_WORK_ITEM'],
+      method: 'POST',
+      path: 'clock/stop',
+      handle: (ctx) => {
+        common.respond(ctx, (lang) => jobs.start(ctx, lang, 'clockStop', {}));
+      }
     }
   ],
   asyncFunctions: jobs.asyncFunctions

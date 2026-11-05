@@ -358,7 +358,29 @@ const clockodo = {
     return request;
   },
 
-  parseUpdate: (body) => mapClockodoEntry(body.entry)
+  parseUpdate: (body) => mapClockodoEntry(body.entry),
+
+  clockRequest: () => ({method: 'GET', path: '/v2/clock', query: []}),
+
+  startClockRequest: (input) => {
+    const payload = {
+      customers_id: Number(input.refs.customer),
+      services_id: Number(input.refs.service),
+      billable: input.billable ? 1 : 0,
+      text: input.text
+    };
+    if (input.refs.project) {
+      payload.projects_id = Number(input.refs.project);
+    }
+    return {method: 'POST', path: '/v2/clock', query: [], payload: payload};
+  },
+
+  stopClockRequest: (id) => ({method: 'DELETE', path: '/v2/clock/' + encodeURIComponent(String(id)), query: []}),
+
+  parseClock: (body) => ({
+    running: body && body.running ? mapClockodoEntry(body.running) : null,
+    stopped: body && body.stopped ? mapClockodoEntry(body.stopped) : null
+  })
 };
 
 const PROVIDERS = [clockodo];

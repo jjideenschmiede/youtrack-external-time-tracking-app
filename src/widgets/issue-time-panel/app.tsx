@@ -5,6 +5,9 @@ import LoaderInline from '@jetbrains/ring-ui-built/components/loader-inline/load
 import Tooltip from '@jetbrains/ring-ui-built/components/tooltip/tooltip';
 import addIcon from '@jetbrains/icons/add';
 import pencilIcon from '@jetbrains/icons/pencil';
+import playIcon from '@jetbrains/icons/play';
+import stopIcon from '@jetbrains/icons/stop';
+import {Elapsed} from '../common/elapsed';
 import {createApi} from '../common/api';
 import {AccountForm} from '../common/account-form';
 import {EntryForm} from '../common/entry-form';
@@ -64,6 +67,20 @@ function waitForResize(): Promise<void> {
 
 type Mode = 'view' | 'add' | 'connect';
 
+function dialogTitle(editing: IssueEntry | null, timing: boolean): string {
+  if (timing) {
+    return t('startClock');
+  }
+  return editing ? t('editTime') : t('logTime');
+}
+
+function submitLabel(editing: IssueEntry | null, timing: boolean): string | undefined {
+  if (timing) {
+    return t('startClockSubmit');
+  }
+  return editing ? t('save') : undefined;
+}
+
 const EstimateBar: React.FC<{used: number; estimate: number}> = ({used, estimate}) => {
   const percent = Math.round((used / estimate) * 100);
   const over = used > estimate;
@@ -98,6 +115,8 @@ const AppComponent: React.FunctionComponent = () => {
   }, [api]);
   const loadPlainForm = useCallback(() => api.getEntryForm(), [api]);
   const [editing, setEditing] = useState<IssueEntry | null>(null);
+  const [timing, setTiming] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const [opening, setOpening] = useState(false);
   const [prefetched, setPrefetched] = useState<EntryFormSchema | null>(null);
   const [modalReady, setModalReady] = useState(false);
@@ -145,6 +164,33 @@ const AppComponent: React.FunctionComponent = () => {
     }
   }, [loadForm]);
 
+  const openClock = useCallback(async () => {
+    setOpening(true);
+    try {
+      setPrefetched(await loadForm().catch(() => null));
+      setTiming(true);
+      setModalReady(false);
+      await host.enterModalMode();
+      setMode('add');
+    } finally {
+      setOpening(false);
+    }
+  }, [loadForm]);
+
+  const stopClock = useCallback(async () => {
+    setStopping(true);
+    try {
+      setSummary(await api.stopIssueClock());
+      host.alert(t('clockStopped'));
+    } catch (e) {
+      await api.syncClock().catch(() => undefined);
+      setSummary(await api.getIssueSummary());
+      host.alert(e instanceof Error ? e.message : t('saveFailed'));
+    } finally {
+      setStopping(false);
+    }
+  }, [api]);
+
   const openEdit = useCallback(async (entry: IssueEntry) => {
     setOpening(true);
     try {
@@ -166,6 +212,7 @@ const AppComponent: React.FunctionComponent = () => {
     await resized;
     setMode('view');
     setEditing(null);
+    setTiming(false);
     setClosing(false);
   }, []);
 
@@ -199,6 +246,12 @@ const AppComponent: React.FunctionComponent = () => {
   }, [api, status]);
 
   const submit = useCallback(async (input: EntryInput) => {
+    if (timing) {
+      setSummary(await api.startIssueClock(input));
+      await closeEntry();
+      host.alert(t('clockStarted'));
+      return;
+    }
     if (editing) {
       const updated = await api.updateIssueEntry(editing.id, input);
       setSummary(updated);
@@ -211,7 +264,7 @@ const AppComponent: React.FunctionComponent = () => {
     await closeEntry();
     const duration = formatDuration((new Date(input.end).getTime() - new Date(input.start).getTime()) / 1000);
     host.alert(t('loggedIn', {duration, provider: next.account?.providerName ?? ''}));
-  }, [api, closeEntry, editing]);
+  }, [api, closeEntry, editing, timing]);
 
   if (error) {
     return (
@@ -227,6 +280,8 @@ const AppComponent: React.FunctionComponent = () => {
   }
 
   const account = summary.account;
+  const clock = summary.clock ?? null;
+  const clockHere = !!clock && clock.issueId === issue.id;
   const entries = expanded ? summary.entries : summary.entries.slice(0, VISIBLE_ENTRIES);
 
   return (
@@ -235,24 +290,42 @@ const AppComponent: React.FunctionComponent = () => {
         <div className="panel-header">
           <span className="panel-title">{account.providerName}</span>
           {mode !== 'connect' && (
-            <Tooltip title={t('logTime')}>
-              <Button icon={addIcon} aria-label={t('logTime')} loader={opening} disabled={opening} onClick={openEntry}/>
-            </Tooltip>
+            <span className="panel-actions">
+              {clockHere && clock
+                ? (
+                  <span className="panel-clock">
+                    <Elapsed start={clock.start}/>
+                    <Tooltip title={t('stopClock')}>
+                      <Button icon={stopIcon} aria-label={t('stopClock')} loader={stopping} disabled={stopping} onClick={stopClock}/>
+                    </Tooltip>
+                  </span>
+                )
+                : (
+                  <Tooltip title={t('startClock')}>
+                    <Button icon={playIcon} aria-label={t('startClock')} disabled={opening} onClick={openClock}/>
+                  </Tooltip>
+                )}
+              <Tooltip title={t('logTime')}>
+                <Button icon={addIcon} aria-label={t('logTime')} loader={opening} disabled={opening} onClick={openEntry}/>
+              </Tooltip>
+            </span>
           )}
         </div>
       )}
 
       {mode === 'add' && account && (
-        <TimeDialog title={editing ? t('editTime') : t('logTime')} hidden={!modalReady || closing} onClose={closeEntry}>
+        <TimeDialog title={dialogTitle(editing, timing)} hidden={!modalReady || closing} onClose={closeEntry}>
           <EntryForm
-            key={editing ? editing.id : 'new'}
+            key={editing ? editing.id : String(timing)}
+            timer={timing}
+            notice={timing && clock && !clockHere ? t('clockRunningElsewhere', {text: clock.text}) : null}
             api={api}
             defaultText={issue.defaultText}
             projectKey={issue.projectKey}
             loadForm={editing ? loadPlainForm : loadForm}
             initialSchema={prefetched}
             editEntry={editing ? {...editing, billable: editing.billable ?? null, refs: editing.refs ?? {}} : null}
-            submitLabel={editing ? t('save') : undefined}
+            submitLabel={submitLabel(editing, timing)}
             onSubmit={submit}
             onCancel={closeEntry}
           />

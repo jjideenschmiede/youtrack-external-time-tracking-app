@@ -130,3 +130,17 @@
 .panel-estimate--over .panel-estimate-text {
   color: var(--ring-error-color);
 }
+
+.panel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--ring-unit) / 2);
+}
+
+.panel-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--ring-unit) / 2);
+  color: var(--ring-main-color);
+  font-weight: 600;
+}

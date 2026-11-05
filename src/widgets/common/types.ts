@@ -112,10 +112,18 @@ export interface IssueEntry {
   refs?: Record<string, NamedRef | null>;
 }
 
+export interface RunningClock {
+  id: string;
+  start: string;
+  text: string;
+  issueId: string | null;
+}
+
 export interface IssueSummary {
   account: Account | null;
   totalSeconds: number;
   estimateSeconds?: number | null;
+  clock?: RunningClock | null;
   entries: IssueEntry[];
 }
 

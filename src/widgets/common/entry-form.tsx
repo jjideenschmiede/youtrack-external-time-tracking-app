@@ -159,7 +159,9 @@ export const EntryForm: React.FC<{
   onCancel?: () => void;
   initialSchema?: EntryFormSchema | null;
   editEntry?: EditableEntry | null;
-}> = ({api, defaultText, projectKey, loadForm, submitLabel, onSubmit, onCancel, initialSchema = null, editEntry = null}) => {
+  timer?: boolean;
+  notice?: string | null;
+}> = ({api, defaultText, projectKey, loadForm, submitLabel, onSubmit, onCancel, initialSchema = null, editEntry = null, timer = false, notice = null}) => {
   const [schema, setSchema] = useState<EntryFormSchema | null>(initialSchema);
   const [schemaError, setSchemaError] = useState<string | null>(null);
 
@@ -186,6 +188,9 @@ export const EntryForm: React.FC<{
   const [dayCalendar, setDayCalendar] = useState<Calendar | null>(null);
 
   useEffect(() => {
+    if (timer) {
+      return undefined;
+    }
     let cancelled = false;
     const key = dateKey(date);
     setDayCalendar(null);
@@ -199,7 +204,7 @@ export const EntryForm: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [api, date]);
+  }, [api, date, timer]);
 
   useEffect(() => {
     if (initialSchema) {
@@ -271,15 +276,16 @@ export const EntryForm: React.FC<{
 
   const submit = async () => {
     setShowErrors(true);
-    if (!schema || !range || missingRefs.length > 0 || !text.trim()) {
+    if (!schema || (!range && !timer) || missingRefs.length > 0 || !text.trim()) {
       return;
     }
     setSubmitting(true);
     setSubmitError(null);
+    const now = new Date().toISOString();
     try {
       await onSubmit({
-        start: range.start.toISOString(),
-        end: range.end.toISOString(),
+        start: range && !timer ? range.start.toISOString() : now,
+        end: range && !timer ? range.end.toISOString() : now,
         text: text.trim(),
         billable: schema.supportsBillable ? billable : false,
         refs,
@@ -312,65 +318,71 @@ export const EntryForm: React.FC<{
 
   return frame(
     <>
-      <div className="ett-row">
-        <div className="ett-field ett-field--grow">
-          <span className="ett-label">{t('date')}</span>
-          <DatePicker
-            locale={dateFnsLocale}
-            date={date}
-            onChange={(value: Date | null | undefined) => {
-              if (value) {
-                setDate(startOfDay(value));
-              }
-            }}
-            size={InputSize.FULL}
-          />
-        </div>
-      </div>
+      {notice && <Banner mode="info" withIcon inline>{notice}</Banner>}
 
-      <div className="ett-row">
-        <Input
-          className="ett-field--grow"
-          label={t('duration')}
-          placeholder="1h 30m"
-          value={durationInput}
-          autoFocus
-          size={InputSize.FULL}
-          error={durationError}
-          onKeyDown={event => submitOnEnter(event, submit)}
-          onChange={e => setDurationInput(e.target.value)}
-        />
-        <Input
-          className="ett-field--time"
-          label={t('start')}
-          placeholder="09:00"
-          value={effectiveStart}
-          size={InputSize.FULL}
-          error={startError}
-          onKeyDown={event => submitOnEnter(event, submit)}
-          onChange={e => {
-            setStartTouched(true);
-            setStartInput(e.target.value);
-          }}
-        />
-      </div>
+      {!timer && (
+        <>
+          <div className="ett-row">
+            <div className="ett-field ett-field--grow">
+              <span className="ett-label">{t('date')}</span>
+              <DatePicker
+                locale={dateFnsLocale}
+                date={date}
+                onChange={(value: Date | null | undefined) => {
+                  if (value) {
+                    setDate(startOfDay(value));
+                  }
+                }}
+                size={InputSize.FULL}
+              />
+            </div>
+          </div>
 
-      {selectedDay.holidays.map(holiday => (
-        <Banner key={`h-${holiday.name}`} mode="info" withIcon inline>
-          {t('holidayOnDay', {name: holiday.name})}
-        </Banner>
-      ))}
-      {selectedDay.absences.map(absence => (
-        <Banner key={`a-${absence.label}`} mode="warning" withIcon inline>
-          {t('absentOnDay', {label: absenceLabel(absence), provider: schema.providerName})}
-        </Banner>
-      ))}
+          <div className="ett-row">
+            <Input
+              className="ett-field--grow"
+              label={t('duration')}
+              placeholder="1h 30m"
+              value={durationInput}
+              autoFocus
+              size={InputSize.FULL}
+              error={durationError}
+              onKeyDown={event => submitOnEnter(event, submit)}
+              onChange={e => setDurationInput(e.target.value)}
+            />
+            <Input
+              className="ett-field--time"
+              label={t('start')}
+              placeholder="09:00"
+              value={effectiveStart}
+              size={InputSize.FULL}
+              error={startError}
+              onKeyDown={event => submitOnEnter(event, submit)}
+              onChange={e => {
+                setStartTouched(true);
+                setStartInput(e.target.value);
+              }}
+            />
+          </div>
 
-      {range && (
-        <div className="ett-hint">
-          {`${formatTime(range.start)} – ${formatTime(range.end)} · ${formatDuration(durationSeconds ?? 0)}`}
-          {futureEnd && <span className="ett-hint-warning">{t('endsInFuture')}</span>}
-        </div>
+          {selectedDay.holidays.map(holiday => (
+            <Banner key={`h-${holiday.name}`} mode="info" withIcon inline>
+              {t('holidayOnDay', {name: holiday.name})}
+            </Banner>
+          ))}
+          {selectedDay.absences.map(absence => (
+            <Banner key={`a-${absence.label}`} mode="warning" withIcon inline>
+              {t('absentOnDay', {label: absenceLabel(absence), provider: schema.providerName})}
+            </Banner>
+          ))}
+
+          {range && (
+            <div className="ett-hint">
+              {`${formatTime(range.start)} – ${formatTime(range.end)} · ${formatDuration(durationSeconds ?? 0)}`}
+              {futureEnd && <span className="ett-hint-warning">{t('endsInFuture')}</span>}
+            </div>
+          )}
+        </>
       )}
 
       {schema.warnings?.map(warning => (

@@ -62,6 +62,8 @@ function dispatch(ctx, job, request, credentials, pendingCredentials) {
     connection.postAsync(request.path, query, JSON.stringify(request.payload || {}), HANDLER);
   } else if (request.method === 'PUT') {
     connection.putAsync(request.path, query, JSON.stringify(request.payload || {}), HANDLER);
+  } else if (request.method === 'DELETE') {
+    connection.deleteAsync(request.path, query, HANDLER);
   } else {
     connection.getAsync(request.path, query, HANDLER);
   }
@@ -82,7 +84,10 @@ function start(ctx, lang, kind, params) {
   const task = tasks[kind];
   const cacheKey = task.cacheKey ? task.cacheKey(job) : null;
   const cached = cacheKey ? common.readCache(user, cacheKey) : null;
-  const cachedData = cached ? (task.fromCache ? task.fromCache(cached.data) : cached.data) : null;
+  let cachedData = cached ? cached.data : null;
+  if (cached && task.fromCache) {
+    cachedData = task.fromCache(cached.data);
+  }
   if (cached && cached.fresh) {
     return cachedData;
   }
