@@ -167,15 +167,20 @@ body {
   --ett-hover-accent-color: #e864ba;
 }
 
-.ring-dialog-closeButtonInside .ring-dialog-closeIcon {
+.ring-dialog-closeButton.ring-dialog-closeButtonInside {
+  --ring-button-text-color: var(--ring-icon-secondary-color);
+  --ring-button-background-color: transparent;
   color: var(--ring-icon-secondary-color);
 }
 
-.ring-dialog-closeButtonInside:hover .ring-dialog-closeIcon,
-.ring-dialog-closeButtonInside:focus-visible .ring-dialog-closeIcon {
-  color: var(--ett-hover-accent-color);
+.ring-dialog-closeButton.ring-dialog-closeButtonInside .ring-dialog-closeIcon {
+  color: var(--ring-icon-secondary-color);
 }
 
-.ring-dialog-closeButtonInside {
-  --ring-button-background-color: transparent;
+.ring-dialog-closeButton.ring-dialog-closeButtonInside:hover,
+.ring-dialog-closeButton.ring-dialog-closeButtonInside:focus-visible,
+.ring-dialog-closeButton.ring-dialog-closeButtonInside:hover .ring-dialog-closeIcon,
+.ring-dialog-closeButton.ring-dialog-closeButtonInside:focus-visible .ring-dialog-closeIcon {
+  --ring-button-text-color: var(--ett-hover-accent-color);
+  color: var(--ett-hover-accent-color);
 }
