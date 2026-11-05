@@ -142,11 +142,13 @@ const AppComponent: React.FunctionComponent = () => {
     }
   }, [api, weekStart]);
 
+  const connected = !!status?.account;
+
   useEffect(() => {
-    if (status?.account) {
+    if (connected) {
       loadEntries();
     }
-  }, [status, loadEntries]);
+  }, [connected, loadEntries]);
 
   const submit = useCallback(async (input: EntryInput) => {
     await api.createEntry(input);
