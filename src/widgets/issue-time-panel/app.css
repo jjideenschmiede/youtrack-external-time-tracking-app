@@ -51,8 +51,9 @@
   line-height: var(--ring-line-height-lowest);
 }
 
-.panel-entry-duration {
-  font-weight: 600;
+.panel-fields .ett-label,
+.panel-title {
+  line-height: var(--ring-line-height);
 }
 
 .panel-entry-date {
