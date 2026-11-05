@@ -267,6 +267,7 @@ const AppComponent: React.FunctionComponent = () => {
         label={t('editTime')}
         trapFocus
         showCloseButton
+        closeButtonInside
         onCloseAttempt={() => setEditing(null)}
       >
         <Header>{t('editTime')}</Header>
@@ -291,6 +292,7 @@ const AppComponent: React.FunctionComponent = () => {
         label={t('logTime')}
         trapFocus
         showCloseButton
+        closeButtonInside
         onCloseAttempt={() => setDialogOpen(false)}
       >
         <Header>{t('logTime')}</Header>
