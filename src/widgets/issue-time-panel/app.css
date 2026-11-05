@@ -47,6 +47,8 @@
   align-items: baseline;
   padding: calc(var(--ring-unit) / 2) 0;
   border-top: 1px solid var(--ring-line-color);
+  font-size: var(--ring-font-size-smaller);
+  line-height: var(--ring-line-height-lowest);
 }
 
 .panel-entry-duration {
@@ -142,6 +144,8 @@
   align-items: center;
   gap: calc(var(--ring-unit) / 2);
   color: var(--ring-text-color);
+  font-size: var(--ring-font-size-smaller);
+  line-height: var(--ring-line-height-lowest);
 }
 
 .panel-actions .ring-button-button {
