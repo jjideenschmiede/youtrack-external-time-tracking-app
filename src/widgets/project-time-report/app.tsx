@@ -34,6 +34,7 @@ interface Group {
   label: string;
   detail: string | null;
   url: string | null;
+  estimateSeconds?: number | null;
   seconds: number;
   count: number;
 }
@@ -58,7 +59,7 @@ function periodLabel(period: Period, start: Date): string {
 
 function groupIdentity(entry: ProjectReportEntry, key: GroupKey): Omit<Group, 'seconds' | 'count'> {
   if (key === 'issue') {
-    return {key: entry.issue.id, label: entry.issue.id, detail: entry.issue.summary, url: entry.issue.url};
+    return {key: entry.issue.id, label: entry.issue.id, detail: entry.issue.summary, url: entry.issue.url, estimateSeconds: entry.issue.estimateSeconds};
   }
   if (key === 'user') {
     return {key: entry.userLogin, label: entry.userName || entry.userLogin, detail: null, url: null};
@@ -128,7 +129,10 @@ const GroupRow: React.FC<{group: Group; maxSeconds: number}> = ({group, maxSecon
         : <span className={`group-label ${group.key ? '' : 'ett-muted'}`}>{group.label}</span>}
       {group.detail && <span className="ett-ellipsis">{group.detail}</span>}
     </div>
-    <span className="ett-muted ett-small group-count">{t('reportEntryCount', {count: group.count})}</span>
+    <span className="ett-muted ett-small group-count">
+      {t('reportEntryCount', {count: group.count})}
+      {!!group.estimateSeconds && ` · ${t('reportEstimate', {duration: formatDuration(group.estimateSeconds)})}`}
+    </span>
     <span className="ett-duration group-duration">{formatDuration(group.seconds)}</span>
     <span className="group-bar" aria-hidden>
       <span className="group-bar-fill" style={{width: `${maxSeconds > 0 ? (group.seconds / maxSeconds) * 100 : 0}%`}}/>

@@ -11,7 +11,7 @@ function projectReport(ctx) {
   const entries = [];
   let needsRefs = false;
   report.projectIssues(ctx.project, ctx.currentUser).forEach((issue) => {
-    const ref = {id: issue.id, summary: issue.summary, url: issue.url};
+    const ref = {id: issue.id, summary: issue.summary, url: issue.url, estimateSeconds: common.issueEstimate(issue, ctx.settings)};
     common.readIssueEntries(issue).forEach((entry) => {
       const start = new Date(entry.start).getTime();
       if (entry.deleted || isNaN(start) || start < range.from || start >= range.to) {

@@ -97,3 +97,36 @@
   --ring-button-text-color: var(--ett-hover-accent-color);
   --ring-button-background-color: transparent;
 }
+
+.panel-estimate {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ring-unit) / 2);
+}
+
+.panel-estimate-bar {
+  display: block;
+  overflow: hidden;
+  height: 4px;
+  border-radius: 2px;
+  background-color: var(--ring-line-color);
+}
+
+.panel-estimate-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background-color: var(--ring-main-color);
+}
+
+.panel-estimate-text {
+  color: var(--ring-secondary-color);
+}
+
+.panel-estimate--over .panel-estimate-fill {
+  background-color: var(--ring-error-color);
+}
+
+.panel-estimate--over .panel-estimate-text {
+  color: var(--ring-error-color);
+}

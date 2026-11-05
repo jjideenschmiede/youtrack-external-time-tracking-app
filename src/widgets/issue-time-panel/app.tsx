@@ -56,6 +56,26 @@ function waitForResize(): Promise<void> {
 
 type Mode = 'view' | 'add' | 'connect';
 
+const EstimateBar: React.FC<{used: number; estimate: number}> = ({used, estimate}) => {
+  const percent = Math.round((used / estimate) * 100);
+  const over = used > estimate;
+  return (
+    <div className={`panel-estimate ${over ? 'panel-estimate--over' : ''}`}>
+      <span
+        className="panel-estimate-bar"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.min(percent, 100)}
+        aria-label={t('estimateUsed', {percent})}
+      >
+        <span className="panel-estimate-fill" style={{width: `${Math.min(percent, 100)}%`}}/>
+      </span>
+      <span className="ett-small panel-estimate-text">{t('estimateUsed', {percent})}</span>
+    </div>
+  );
+};
+
 const AppComponent: React.FunctionComponent = () => {
   const api = useMemo(() => createApi(host), []);
   const formRequest = useRef<Promise<EntryFormSchema> | null>(null);
@@ -251,7 +271,17 @@ const AppComponent: React.FunctionComponent = () => {
       <div className="panel-fields">
         <span className="ett-label">{t('total')}</span>
         <span className="ett-duration">{summary.totalSeconds > 0 ? formatDuration(summary.totalSeconds) : '—'}</span>
+        {!!summary.estimateSeconds && (
+          <>
+            <span className="ett-label">{t('estimate')}</span>
+            <span className="ett-duration">{formatDuration(summary.estimateSeconds)}</span>
+          </>
+        )}
       </div>
+
+      {!!summary.estimateSeconds && (
+        <EstimateBar used={summary.totalSeconds} estimate={summary.estimateSeconds}/>
+      )}
 
       {entries.length > 0 && (
         <ul className="panel-entries">

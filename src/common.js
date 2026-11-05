@@ -295,7 +295,33 @@ function readDateRange(fromDate, toDate) {
   return {fromDate: fromDate, toDate: toDate};
 }
 
-function issueSummary(user, lang, entries) {
+const MINUTES_PER_DAY = 8 * 60;
+const DAYS_PER_WEEK = 5;
+
+function periodPart(period, method) {
+  return typeof period[method] === 'function' ? Number(period[method]()) || 0 : 0;
+}
+
+function issueEstimate(issue, settings) {
+  const fieldName = settings && typeof settings.estimationField === 'string' ? settings.estimationField.trim() : '';
+  if (!issue || !fieldName) {
+    return null;
+  }
+  let period;
+  try {
+    period = issue.fields[fieldName];
+  } catch {
+    return null;
+  }
+  if (!period || typeof period.getMinutes !== 'function') {
+    return null;
+  }
+  const days = periodPart(period, 'getDays') + DAYS_PER_WEEK * periodPart(period, 'getWeeks');
+  const minutes = periodPart(period, 'getMinutes') + 60 * periodPart(period, 'getHours') + MINUTES_PER_DAY * days;
+  return minutes > 0 ? minutes * 60 : null;
+}
+
+function issueSummary(user, lang, entries, estimateSeconds) {
   let total = 0;
   const visible = entries
     .map((entry) => {
@@ -309,6 +335,7 @@ function issueSummary(user, lang, entries) {
   return {
     account: publicAccount(user, lang),
     totalSeconds: total,
+    estimateSeconds: estimateSeconds || null,
     entries: visible
   };
 }
@@ -412,6 +439,7 @@ exports.linkIssues = linkIssues;
 exports.readRange = readRange;
 exports.readDateRange = readDateRange;
 exports.issueSummary = issueSummary;
+exports.issueEstimate = issueEstimate;
 exports.readCache = readCache;
 exports.writeCache = writeCache;
 exports.readIssueEntries = readIssueEntries;

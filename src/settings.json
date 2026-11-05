@@ -18,6 +18,11 @@
       "type": "string",
       "title": "Service field / Feld für Leistung",
       "description": "Name of the custom field that contains the service name, e.g. \"Leistung\"."
+    },
+    "estimationField": {
+      "type": "string",
+      "title": "Estimation field / Feld für Schätzung",
+      "description": "Optional: name of a period custom field that holds the estimation, e.g. \"Estimation\" or \"Zeitschätzung\". The issue panel then shows the logged time against it. Works without YouTrack time tracking. Optional: Name eines Zeitraum-Felds mit der Schätzung. Das Ticket-Panel zeigt dann die erfasste Zeit im Verhältnis dazu."
     }
   }
 }

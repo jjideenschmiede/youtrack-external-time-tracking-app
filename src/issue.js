@@ -9,7 +9,7 @@ exports.httpHandler = {
       method: 'GET',
       path: 'summary',
       handle: (ctx) => {
-        common.respond(ctx, (lang) => common.issueSummary(ctx.currentUser, lang, common.readIssueEntries(ctx.issue)));
+        common.respond(ctx, (lang) => common.issueSummary(ctx.currentUser, lang, common.readIssueEntries(ctx.issue), common.issueEstimate(ctx.issue, ctx.settings)));
       }
     },
     {

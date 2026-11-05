@@ -272,7 +272,7 @@ exports.update = {
     const entry = provider.parseUpdate(body);
     const refs = common.labelRefs(job.state.input, job.state.labels);
     if (env.issue) {
-      return done(common.issueSummary(env.user, job.lang, patchStoredEntry(env.issue, env.user, entry, refs)));
+      return done(common.issueSummary(env.user, job.lang, patchStoredEntry(env.issue, env.user, entry, refs), common.issueEstimate(env.issue, env.settings)));
     }
     const ids = {};
     ((entry.text + ' ' + job.state.previousText).match(common.ISSUE_ID_PATTERN) || []).forEach((issueId) => {
@@ -340,7 +340,7 @@ exports.create = {
     });
     common.writeIssueEntries(env.issue, entries);
     common.indexIssue(env.issue);
-    return done(common.issueSummary(env.user, job.lang, entries));
+    return done(common.issueSummary(env.user, job.lang, entries, common.issueEstimate(env.issue, env.settings)));
   }
 };
 

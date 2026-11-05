@@ -28,7 +28,8 @@ We are **YouTrack Certified** and **TeamCity Certified** developers, specializin
 The App lets every user connect their own account of an external time tracking system and log time without leaving YouTrack. Entries are created directly in the time tracking system, so it stays the single source of truth. Currently clocko:do is supported.
 
 - Personal connection to the time tracking system in the YouTrack profile, credentials are verified before saving and never sent back to the browser
-- Time Tracking panel in the issue sidebar with the total and your own tracked time and a form for new entries
+- Time Tracking panel in the issue sidebar with the total tracked time and a form for new entries
+- Optional comparison of the tracked time with the estimation of the issue, also without YouTrack's built-in time tracking
 - "Log Time" dialog in the issue options menu
 - Edit your own time entries from the issue panel and the weekly timesheet, as long as the editing lock of the time tracking system allows it
 - Weekly timesheet in the YouTrack main menu, issue IDs in entry descriptions are linked to their issues
@@ -58,6 +59,8 @@ Each user connects their own account in the YouTrack profile under "Time Trackin
 The Time Tracking panel and the "Log Time" dialog in issues are only visible to users who can add work items (`Create Work Items`), so reporters in helpdesk projects don't see who logged how much time. The Time Tracking tab in projects is only visible to users with the permission to update work items of other users (`Update Not Own Work Items`). Project and system administrators have it by default; grant it to other roles, for example a manager role, to give them access to the report.
 
 Optionally, administrators can map YouTrack fields to the customer, project and service of the time tracking system in the app settings, either globally or per project. If an issue field contains a value, the matching entry is preselected in the form.
+
+To compare the tracked time with an estimation, enter the name of a period field, for example "Estimation", in the app setting "Estimation field". The issue panel then shows the estimation and how much of it has been used, and the project report shows the estimation per issue. The field works independently of YouTrack's built-in time tracking. Periods are converted with 8 hours per day and 5 days per week.
 
 The issue panel and the project report show the time entries that were logged via the app. Changes made directly in the time tracking system are synchronized when the person who logged the entry opens the issue, at most every 10 minutes. Customers, projects, services, absences and public holidays are cached per user for 10 minutes, so new entries in these lists appear in the form after at most 10 minutes.
 

@@ -84,6 +84,7 @@ export interface IssueRef {
   id: string;
   summary: string;
   url: string;
+  estimateSeconds?: number | null;
 }
 
 export interface TimeEntry {
@@ -114,6 +115,7 @@ export interface IssueEntry {
 export interface IssueSummary {
   account: Account | null;
   totalSeconds: number;
+  estimateSeconds?: number | null;
   entries: IssueEntry[];
 }
 
