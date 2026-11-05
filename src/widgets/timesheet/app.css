@@ -172,6 +172,5 @@
 }
 
 .entry-duration--running {
-  color: var(--ring-main-color);
-  font-weight: 600;
+  color: var(--ring-text-color);
 }

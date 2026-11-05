@@ -429,6 +429,48 @@ exports.backfill = {
   }
 };
 
+const ROUNDING_STEPS = [5, 10, 15, 30, 60];
+
+function readRounding(settings) {
+  const minutes = Number(settings && settings.clockRounding);
+  if (ROUNDING_STEPS.indexOf(minutes) === -1) {
+    return null;
+  }
+  return {minutes: minutes, mode: settings.clockRoundingMode === 'nearest' ? 'nearest' : 'up'};
+}
+
+function roundedSeconds(seconds, rounding) {
+  const block = rounding.minutes * 60;
+  const blocks = rounding.mode === 'nearest' ? Math.round(seconds / block) : Math.ceil(seconds / block);
+  return Math.max(1, blocks) * block;
+}
+
+function roundingRequest(provider, stopped, clock) {
+  const rounding = clock && clock.rounding;
+  if (!stopped || !rounding || clock.id !== stopped.id) {
+    return null;
+  }
+  const seconds = roundedSeconds(stopped.durationSeconds, rounding);
+  if (seconds === stopped.durationSeconds) {
+    return null;
+  }
+  const refs = {};
+  Object.keys(stopped.refs || {}).forEach((key) => {
+    refs[key] = stopped.refs[key] ? stopped.refs[key].id : null;
+  });
+  return provider.updateRequest(stopped.id, {
+    start: stopped.start,
+    end: new Date(new Date(stopped.start).getTime() + seconds * 1000).toISOString(),
+    text: stopped.text,
+    billable: stopped.billable === null ? clock.billable : stopped.billable,
+    refs: refs
+  });
+}
+
+function stoppedEntry(provider, request, body) {
+  return request.method === 'PUT' ? provider.parseUpdate(body) : provider.parseClock(body).stopped;
+}
+
 function attachStopped(user, provider, stopped, clock) {
   if (!stopped || !clock || clock.id !== stopped.id || !clock.issueId) {
     return null;
@@ -496,19 +538,32 @@ exports.clockStart = {
   },
   next: (job, env, request, body) => {
     const provider = providers.find(job.provider);
+    const previous = common.readClock(env.user);
+    if (request.method === 'PUT') {
+      attachStopped(env.user, provider, provider.parseUpdate(body), previous);
+      common.writeClock(env.user, job.state.next);
+      return done(clockResult(env, job.lang));
+    }
     const clock = provider.parseClock(body);
-    attachStopped(env.user, provider, clock.stopped, common.readClock(env.user));
     const projectKey = env.issue ? env.issue.project.key : null;
     const refs = common.rememberCreated(env.user, projectKey, job.state.input, job.state.labels);
-    common.writeClock(env.user, clock.running ? {
+    const next = clock.running ? {
       id: clock.running.id,
       provider: provider.id,
       start: clock.running.start,
       text: clock.running.text,
       issueId: env.issue ? env.issue.id : null,
       billable: job.state.input.billable,
-      refs: refs
-    } : null);
+      refs: refs,
+      rounding: readRounding(env.settings)
+    } : null;
+    const round = roundingRequest(provider, clock.stopped, previous);
+    if (round) {
+      job.state = {next: next};
+      return send(round);
+    }
+    attachStopped(env.user, provider, clock.stopped, previous);
+    common.writeClock(env.user, next);
     return done(clockResult(env, job.lang));
   }
 };
@@ -526,10 +581,18 @@ exports.clockStop = {
   },
   next: (job, env, request, body) => {
     const provider = providers.find(job.provider);
-    const clock = provider.parseClock(body);
     const stored = common.readClock(env.user);
-    attachStopped(env.user, provider, clock.stopped, stored);
-    if (!clock.running || (stored && clock.stopped && stored.id === clock.stopped.id)) {
+    const stopped = stoppedEntry(provider, request, body);
+    if (request.method !== 'PUT') {
+      const round = roundingRequest(provider, stopped, stored);
+      if (round) {
+        return send(round);
+      }
+    }
+    attachStopped(env.user, provider, stopped, stored);
+    if (stored && stopped && stored.id === stopped.id) {
+      common.writeClock(env.user, null);
+    } else if (request.method !== 'PUT' && !provider.parseClock(body).running) {
       common.writeClock(env.user, null);
     }
     return done(clockResult(env, job.lang));

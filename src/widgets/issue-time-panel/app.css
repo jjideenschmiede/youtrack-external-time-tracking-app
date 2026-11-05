@@ -141,6 +141,5 @@
   display: inline-flex;
   align-items: center;
   gap: calc(var(--ring-unit) / 2);
-  color: var(--ring-main-color);
-  font-weight: 600;
+  color: var(--ring-text-color);
 }

@@ -23,6 +23,30 @@
       "type": "string",
       "title": "Estimation field / Feld für Schätzung",
       "description": "Optional: name of a period custom field that holds the estimation, e.g. \"Estimation\" or \"Zeitschätzung\". The issue panel then shows the logged time against it. Works without YouTrack time tracking. Optional: Name eines Zeitraum-Felds mit der Schätzung. Das Ticket-Panel zeigt dann die erfasste Zeit im Verhältnis dazu."
+    },
+    "clockRounding": {
+      "type": "integer",
+      "title": "Clock rounding / Rundung der Stoppuhr",
+      "description": "Optional: rounds the time of stopped clock entries to blocks of the given minutes, e.g. 15. 0 turns rounding off. Manually entered durations are not changed. Optional: rundet die Zeit gestoppter Einträge auf Blöcke dieser Minutenzahl, z. B. 15. 0 schaltet die Rundung aus.",
+      "enum": [
+        0,
+        5,
+        10,
+        15,
+        30,
+        60
+      ],
+      "default": 0
+    },
+    "clockRoundingMode": {
+      "type": "string",
+      "title": "Rounding mode / Rundungsart",
+      "description": "\"up\" counts every started block, \"nearest\" rounds to the closest block. At least one block is always logged. \"up\" zählt jeden angefangenen Block, \"nearest\" rundet auf den nächsten Block.",
+      "enum": [
+        "up",
+        "nearest"
+      ],
+      "default": "up"
     }
   }
 }
