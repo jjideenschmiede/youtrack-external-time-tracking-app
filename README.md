@@ -61,7 +61,7 @@ The Time Tracking panel and the "Log Time" dialog in issues are only visible to 
 
 Optionally, administrators can map YouTrack fields to the customer, project and service of the time tracking system in the app settings, either globally or per project. If an issue field contains a value, the matching entry is preselected in the form.
 
-Clock entries can be rounded with the app settings "Clock rounding" and "Rounding mode", either globally or per project. With 15 minutes and "up", every started quarter of an hour counts, so 31 minutes are logged as 45 minutes. Manually entered durations are never rounded.
+Clock entries can be rounded with the app settings "Clock rounding" and "Rounding mode", either globally or per project. With "15 minutes" and "Round up", every started quarter of an hour counts, so 31 minutes are logged as 45 minutes. Manually entered durations are never rounded.
 
 To compare the tracked time with an estimation, enter the name of a period field, for example "Estimation", in the app setting "Estimation field". The issue panel then shows the estimation and how much of it has been used, and the project report shows the estimation per issue. The field works independently of YouTrack's built-in time tracking. Periods are converted with 8 hours per day and 5 days per week.
 

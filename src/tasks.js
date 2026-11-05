@@ -432,11 +432,11 @@ exports.backfill = {
 const ROUNDING_STEPS = [5, 10, 15, 30, 60];
 
 function readRounding(settings) {
-  const minutes = Number(settings && settings.clockRounding);
+  const minutes = parseInt(settings && settings.clockRounding, 10);
   if (ROUNDING_STEPS.indexOf(minutes) === -1) {
     return null;
   }
-  return {minutes: minutes, mode: settings.clockRoundingMode === 'nearest' ? 'nearest' : 'up'};
+  return {minutes: minutes, mode: settings.clockRoundingMode === 'Round to nearest' ? 'nearest' : 'up'};
 }
 
 function roundedSeconds(seconds, rounding) {
