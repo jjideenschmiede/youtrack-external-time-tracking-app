@@ -143,3 +143,14 @@
   gap: calc(var(--ring-unit) / 2);
   color: var(--ring-text-color);
 }
+
+.panel-actions .ring-button-button {
+  --ring-button-text-color: var(--ring-link-color);
+}
+
+.panel-actions .ring-button-button:hover,
+.panel-actions .ring-button-button:focus-visible {
+  --ring-button-text-color: var(--ett-hover-accent-color);
+  --ring-button-hover-background-color: transparent;
+  --ring-button-background-color: transparent;
+}
