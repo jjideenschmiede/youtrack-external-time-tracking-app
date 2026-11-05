@@ -148,11 +148,12 @@
   align-self: center;
 }
 
-.panel-entry-edit button {
-  opacity: 0.6;
+.panel-entry-edit .ring-button-inline {
+  --ring-button-text-color: var(--ring-icon-secondary-color);
 }
 
-.panel-entry:hover .panel-entry-edit button,
-.panel-entry-edit button:focus-visible {
-  opacity: 1;
+.panel-entry-edit .ring-button-inline:hover,
+.panel-entry-edit .ring-button-inline:focus-visible {
+  --ring-button-text-color: #e864ba;
+  --ring-button-background-color: transparent;
 }

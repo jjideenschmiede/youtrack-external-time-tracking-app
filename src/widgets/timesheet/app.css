@@ -161,11 +161,12 @@
   align-self: center;
 }
 
-.entry-edit button {
-  opacity: 0.6;
+.entry-edit .ring-button-inline {
+  --ring-button-text-color: var(--ring-icon-secondary-color);
 }
 
-.entry:hover .entry-edit button,
-.entry-edit button:focus-visible {
-  opacity: 1;
+.entry-edit .ring-button-inline:hover,
+.entry-edit .ring-button-inline:focus-visible {
+  --ring-button-text-color: #e864ba;
+  --ring-button-background-color: transparent;
 }
