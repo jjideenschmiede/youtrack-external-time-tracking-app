@@ -145,7 +145,7 @@
 }
 
 .panel-actions .ring-button-button {
-  --ring-button-text-color: var(--ring-link-color);
+  --ring-button-text-color: var(--ring-icon-secondary-color);
 }
 
 .panel-actions .ring-button-button:hover,
