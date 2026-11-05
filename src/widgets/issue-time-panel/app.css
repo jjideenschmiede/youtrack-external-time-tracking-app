@@ -26,7 +26,8 @@
 
 .panel-fields {
   display: grid;
-  grid-template-columns: minmax(96px, auto) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-right: calc(16px + var(--ring-unit));
   column-gap: calc(var(--ring-unit) * 2);
   row-gap: calc(var(--ring-unit) / 2);
   align-items: baseline;
@@ -158,4 +159,8 @@
   --ring-button-text-color: var(--ett-hover-accent-color);
   --ring-button-hover-background-color: transparent;
   --ring-button-background-color: transparent;
+}
+
+.panel-fields > .ett-duration {
+  justify-self: end;
 }
