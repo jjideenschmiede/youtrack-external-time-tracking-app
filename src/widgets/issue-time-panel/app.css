@@ -154,6 +154,6 @@
 
 .panel-entry-edit .ring-button-inline:hover,
 .panel-entry-edit .ring-button-inline:focus-visible {
-  --ring-button-text-color: #e864ba;
+  --ring-button-text-color: var(--ett-hover-accent-color);
   --ring-button-background-color: transparent;
 }
