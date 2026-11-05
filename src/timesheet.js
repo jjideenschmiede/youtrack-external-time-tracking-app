@@ -51,6 +51,17 @@ exports.httpHandler = {
       handle: (ctx) => {
         common.respond(ctx, (lang) => jobs.start(ctx, lang, 'create', {body: common.requestBody(ctx)}));
       }
+    },
+    {
+      scope: 'global',
+      method: 'POST',
+      path: 'update',
+      handle: (ctx) => {
+        common.respond(ctx, (lang) => {
+          const body = common.requestBody(ctx);
+          return jobs.start(ctx, lang, 'update', {id: body.id, body: body.entry || {}, previousText: body.previousText});
+        });
+      }
     }
   ],
   asyncFunctions: jobs.asyncFunctions

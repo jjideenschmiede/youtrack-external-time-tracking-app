@@ -85,6 +85,7 @@ function publicAccount(user, lang) {
     name: connection.account.name,
     email: connection.account.email,
     company: connection.account.company || null,
+    lock: connection.account.lock || null,
     links: providers.links(connection.provider, lang)
   };
 }
@@ -103,6 +104,7 @@ function saveConnection(user, lang, provider, profile, credentials) {
     name: profile.name,
     email: profile.email,
     company: profile.company,
+    lock: profile.lock || null,
     connectedAt: Date.now()
   });
   user.extensionProperties.timeTrackingCredentials = JSON.stringify(credentials);
@@ -128,6 +130,14 @@ function cleanCredentials(user, providerId, credentials) {
     cleaned[field.key] = value;
   });
   return {provider: provider, credentials: cleaned};
+}
+
+function updateLock(user, lock) {
+  const account = parseJson(user.extensionProperties.timeTrackingAccount, null);
+  if (account && lock) {
+    account.lock = lock;
+    user.extensionProperties.timeTrackingAccount = JSON.stringify(account);
+  }
 }
 
 function disconnect(user, lang) {
@@ -391,7 +401,9 @@ exports.publicAccount = publicAccount;
 exports.accountStatus = accountStatus;
 exports.cleanCredentials = cleanCredentials;
 exports.saveConnection = saveConnection;
+exports.updateLock = updateLock;
 exports.disconnect = disconnect;
+exports.ISSUE_ID_PATTERN = ISSUE_ID_PATTERN;
 exports.entryForm = entryForm;
 exports.readFieldValue = readFieldValue;
 exports.clearDependents = clearDependents;

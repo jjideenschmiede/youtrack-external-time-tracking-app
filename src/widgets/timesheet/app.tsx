@@ -10,6 +10,7 @@ import Text from '@jetbrains/ring-ui-built/components/text/text';
 import chevronLeftIcon from '@jetbrains/icons/chevron-left';
 import chevronRightIcon from '@jetbrains/icons/chevron-right';
 import newWindowIcon from '@jetbrains/icons/new-window';
+import pencilIcon from '@jetbrains/icons/pencil';
 import {createApi} from '../common/api';
 import {AccountForm} from '../common/account-form';
 import {EntryForm} from '../common/entry-form';
@@ -26,6 +27,7 @@ import {
 import {dateKey} from '../common/duration';
 import {daysFor} from '../common/calendar';
 import {CalendarChips} from '../common/calendar-chips';
+import {canEdit} from '../common/editable';
 import type {AccountStatus, Calendar, EntryInput, TimeEntry} from '../common/types';
 import {t} from '../common/i18n';
 
@@ -68,7 +70,7 @@ function stripIssueIds(text: string, entry: TimeEntry): string {
   return result.trim();
 }
 
-const EntryRow: React.FC<{entry: TimeEntry}> = ({entry}) => {
+const EntryRow: React.FC<{entry: TimeEntry; onEdit: ((entry: TimeEntry) => void) | null}> = ({entry, onEdit}) => {
   const start = new Date(entry.start);
   const end = entry.end ? new Date(entry.end) : null;
   const description = stripIssueIds(entry.text, entry);
@@ -92,6 +94,11 @@ const EntryRow: React.FC<{entry: TimeEntry}> = ({entry}) => {
           {entry.billable === false && <span className="entry-flag">{t('notBillable')}</span>}
         </div>
       </div>
+      <span className="entry-edit">
+        {onEdit && (
+          <Button inline icon={pencilIcon} aria-label={t('editEntry')} title={t('editEntry')} onClick={() => onEdit(entry)}/>
+        )}
+      </span>
     </div>
   );
 };
@@ -106,6 +113,7 @@ const AppComponent: React.FunctionComponent = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<TimeEntry | null>(null);
 
   useEffect(() => {
     api.getAccount()
@@ -123,6 +131,10 @@ const AppComponent: React.FunctionComponent = () => {
       ]);
       setEntries(result.entries);
       setCalendar(nextCalendar);
+      if (result.account) {
+        const account = result.account;
+        setStatus(prev => (prev ? {...prev, account} : prev));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : t('entriesLoadFailed'));
     } finally {
@@ -147,6 +159,16 @@ const AppComponent: React.FunctionComponent = () => {
       setWeekStart(entryWeek);
     }
   }, [api, loadEntries, weekStart]);
+
+  const submitEdit = useCallback(async (input: EntryInput) => {
+    if (!editing) {
+      return;
+    }
+    await api.updateEntry(editing.id, input, editing.text);
+    setEditing(null);
+    host.alert(t('entryUpdated'));
+    await loadEntries();
+  }, [api, editing, loadEntries]);
 
   const days = useMemo(() => groupByDay(weekStart, entries ?? []), [weekStart, entries]);
   const weekTotal = days.reduce((sum, day) => sum + day.totalSeconds, 0);
@@ -226,11 +248,41 @@ const AppComponent: React.FunctionComponent = () => {
               </header>
               {day.entries.length === 0
                 ? <div className="day-empty ett-muted ett-small">{t('noEntries')}</div>
-                : day.entries.map(entry => <EntryRow key={entry.id} entry={entry}/>)}
+                : day.entries.map(entry => (
+                  <EntryRow
+                    key={entry.id}
+                    entry={entry}
+                    onEdit={entry.end && canEdit(entry.start, status.account) ? setEditing : null}
+                  />
+                ))}
             </section>
           ))}
         </div>
       )}
+
+      <Dialog
+        show={editing !== null}
+        label={t('editTime')}
+        trapFocus
+        showCloseButton
+        onCloseAttempt={() => setEditing(null)}
+      >
+        <Header>{t('editTime')}</Header>
+        {editing && (
+          <EntryForm
+            key={editing.id}
+            api={api}
+            defaultText=""
+            projectKey={null}
+            loadForm={loadForm}
+            variant="dialog"
+            editEntry={editing}
+            submitLabel={t('save')}
+            onSubmit={submitEdit}
+            onCancel={() => setEditing(null)}
+          />
+        )}
+      </Dialog>
 
       <Dialog
         show={dialogOpen}

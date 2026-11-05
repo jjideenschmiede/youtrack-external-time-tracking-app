@@ -60,6 +60,8 @@ function dispatch(ctx, job, request, credentials, pendingCredentials) {
   }
   if (request.method === 'POST') {
     connection.postAsync(request.path, query, JSON.stringify(request.payload || {}), HANDLER);
+  } else if (request.method === 'PUT') {
+    connection.putAsync(request.path, query, JSON.stringify(request.payload || {}), HANDLER);
   } else {
     connection.getAsync(request.path, query, HANDLER);
   }

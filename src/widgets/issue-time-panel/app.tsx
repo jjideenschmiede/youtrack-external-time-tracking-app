@@ -5,12 +5,14 @@ import LoaderInline from '@jetbrains/ring-ui-built/components/loader-inline/load
 import Tooltip from '@jetbrains/ring-ui-built/components/tooltip/tooltip';
 import addIcon from '@jetbrains/icons/add';
 import closeIcon from '@jetbrains/icons/close';
+import pencilIcon from '@jetbrains/icons/pencil';
 import {createApi} from '../common/api';
 import {AccountForm} from '../common/account-form';
 import {EntryForm} from '../common/entry-form';
 import {formatDuration, formatShortDate} from '../common/duration';
 import {loadIssueContext, type IssueContext} from '../common/issue-context';
-import type {AccountStatus, EntryForm as EntryFormSchema, EntryInput, IssueSummary} from '../common/types';
+import {canEdit} from '../common/editable';
+import type {AccountStatus, EntryForm as EntryFormSchema, EntryInput, IssueEntry, IssueSummary} from '../common/types';
 import {t} from '../common/i18n';
 
 const host = await YTApp.register();
@@ -66,6 +68,8 @@ const AppComponent: React.FunctionComponent = () => {
     }
     return formRequest.current;
   }, [api]);
+  const loadPlainForm = useCallback(() => api.getEntryForm(), [api]);
+  const [editing, setEditing] = useState<IssueEntry | null>(null);
   const [opening, setOpening] = useState(false);
   const [prefetched, setPrefetched] = useState<EntryFormSchema | null>(null);
   const [modalReady, setModalReady] = useState(false);
@@ -113,6 +117,19 @@ const AppComponent: React.FunctionComponent = () => {
     }
   }, [loadForm]);
 
+  const openEdit = useCallback(async (entry: IssueEntry) => {
+    setOpening(true);
+    try {
+      setPrefetched(await loadPlainForm().catch(() => null));
+      setEditing(entry);
+      setModalReady(false);
+      await host.enterModalMode();
+      setMode('add');
+    } finally {
+      setOpening(false);
+    }
+  }, [loadPlainForm]);
+
   const closeEntry = useCallback(async () => {
     setClosing(true);
     formRequest.current = null;
@@ -120,6 +137,7 @@ const AppComponent: React.FunctionComponent = () => {
     await host.exitModalMode();
     await resized;
     setMode('view');
+    setEditing(null);
     setClosing(false);
   }, []);
 
@@ -166,12 +184,19 @@ const AppComponent: React.FunctionComponent = () => {
   }, [api, status]);
 
   const submit = useCallback(async (input: EntryInput) => {
+    if (editing) {
+      const updated = await api.updateIssueEntry(editing.id, input);
+      setSummary(updated);
+      await closeEntry();
+      host.alert(t('entryUpdated'));
+      return;
+    }
     const next = await api.createIssueEntry(input);
     setSummary(next);
     await closeEntry();
     const duration = formatDuration((new Date(input.end).getTime() - new Date(input.start).getTime()) / 1000);
     host.alert(t('loggedIn', {duration, provider: next.account?.providerName ?? ''}));
-  }, [api, closeEntry]);
+  }, [api, closeEntry, editing]);
 
   if (error) {
     return (
@@ -214,14 +239,17 @@ const AppComponent: React.FunctionComponent = () => {
             />
             <h2 className="panel-modal-title">
               <img className="panel-modal-icon" src="widget-icon.svg" alt=""/>
-              {t('logTime')}
+              {editing ? t('editTime') : t('logTime')}
             </h2>
             <EntryForm
+              key={editing ? editing.id : 'new'}
               api={api}
               defaultText={issue.defaultText}
               projectKey={issue.projectKey}
-              loadForm={loadForm}
+              loadForm={editing ? loadPlainForm : loadForm}
               initialSchema={prefetched}
+              editEntry={editing ? {...editing, billable: editing.billable ?? null, refs: editing.refs ?? {}} : null}
+              submitLabel={editing ? t('save') : undefined}
               onSubmit={submit}
               onCancel={closeEntry}
             />
@@ -262,6 +290,18 @@ const AppComponent: React.FunctionComponent = () => {
               <span className="ett-duration panel-entry-duration">{formatDuration(entry.durationSeconds)}</span>
               <span className="ett-ellipsis">{entry.mine ? t('me') : entry.userName}</span>
               <span className="ett-muted ett-small panel-entry-date">{formatShortDate(new Date(entry.start))}</span>
+              <span className="panel-entry-edit">
+                {entry.mine && !entry.deleted && canEdit(entry.start, account) && (
+                  <Button
+                    inline
+                    icon={pencilIcon}
+                    aria-label={t('editEntry')}
+                    title={t('editEntry')}
+                    disabled={opening}
+                    onClick={() => openEdit(entry)}
+                  />
+                )}
+              </span>
               {entry.deleted && (
                 <span className="panel-entry-note">
                   {t('deletedIn', {provider: account?.providerName ?? entry.provider})}

@@ -195,7 +195,14 @@ const clockodo = {
       externalUserId: String(user.id),
       name: user.name,
       email: user.email || credentials.email,
-      company: null
+      company: null,
+      lock: {
+        known: 'edit_lock' in user || 'edit_lock_dyn' in user,
+        unrestricted: user.role === 'owner' || user.role === 'manager',
+        date: user.edit_lock || null,
+        days: typeof user.edit_lock_dyn === 'number' && user.edit_lock_dyn > 0 ? user.edit_lock_dyn : null,
+        checkedAt: Date.now()
+      }
     };
   },
 
@@ -339,7 +346,19 @@ const clockodo = {
     return {method: 'POST', path: '/v2/entries', query: [], payload: payload};
   },
 
-  parseCreate: (body) => mapClockodoEntry(body.entry)
+  parseCreate: (body) => mapClockodoEntry(body.entry),
+
+  updateRequest: (id, input) => {
+    const request = clockodo.createRequest(input);
+    request.method = 'PUT';
+    request.path = '/v2/entries/' + encodeURIComponent(String(id));
+    if (!input.refs.project) {
+      request.payload.projects_id = null;
+    }
+    return request;
+  },
+
+  parseUpdate: (body) => mapClockodoEntry(body.entry)
 };
 
 const PROVIDERS = [clockodo];

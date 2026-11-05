@@ -1,6 +1,6 @@
 import type {HostAPI} from '../../../@types/globals';
 import {lang, t} from './i18n';
-import type {AccountStatus, Calendar, EntryForm, EntryInput, IssueSummary, Option, ProjectReport, TimeEntry} from './types';
+import type {Account, AccountStatus, Calendar, EntryForm, EntryInput, IssueSummary, Option, ProjectReport, TimeEntry} from './types';
 
 type Result<T> = T & {error?: string};
 type Params = {method?: string; query?: Record<string, string>; body?: unknown; scope?: boolean};
@@ -84,16 +84,20 @@ export function createApi(host: HostAPI) {
       return job<{options: Option[]}>(host, 'timesheet/options', {body: {field, refs: selected}});
     },
     getEntries: (from: Date, to: Date) =>
-      job<{entries: TimeEntry[]}>(host, 'timesheet/list', {body: {from: from.toISOString(), to: to.toISOString()}}),
+      job<{entries: TimeEntry[]; account?: Account | null}>(host, 'timesheet/list', {body: {from: from.toISOString(), to: to.toISOString()}}),
     getCalendar: (fromDate: string, toDate: string) =>
       job<Calendar>(host, 'timesheet/calendar', {body: {fromDate, toDate}}),
     createEntry: (input: EntryInput) =>
       job<{entry: TimeEntry}>(host, 'timesheet/entries', {body: input}),
+    updateEntry: (id: string, input: EntryInput, previousText: string) =>
+      job<{entry: TimeEntry}>(host, 'timesheet/update', {body: {id, entry: input, previousText}}),
 
     getIssueSummary: () => request<IssueSummary>(host, 'issue/summary', {scope: true}),
     refreshIssue: () => job<{changed: boolean}>(host, 'issue/refresh', {scope: true}),
     createIssueEntry: (input: EntryInput) =>
       job<IssueSummary>(host, 'issue/entries', {body: input, scope: true}),
+    updateIssueEntry: (id: string, input: EntryInput) =>
+      job<IssueSummary>(host, 'issue/update', {body: {id, entry: input}, scope: true}),
 
     getProjectReport: (from: Date, to: Date) =>
       request<ProjectReport>(host, 'project/report', {method: 'POST', body: {from: from.toISOString(), to: to.toISOString()}, scope: true}),

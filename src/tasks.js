@@ -1,3 +1,4 @@
+const entities = require('@jetbrains/youtrack-scripting-api/entities');
 const common = require('./common');
 const providers = require('./providers');
 const report = require('./report');
@@ -6,6 +7,7 @@ const i18n = require('./i18n');
 const DAY = 24 * 3600 * 1000;
 const ENTRIES_MAX_DAYS = 62;
 const REFRESH_WINDOW_DAYS = 60;
+const LOCK_MAX_AGE = 24 * 3600 * 1000;
 
 function done(result) {
   return {result: result};
@@ -122,12 +124,13 @@ function refreshEntries(issue, user, provider, remote) {
     }
     if (entry.deleted || current.durationSeconds !== entry.durationSeconds ||
       current.start !== entry.start || current.text !== entry.text ||
-      refKey(current.refs) !== refKey(entry.refs)) {
+      current.billable !== entry.billable || refKey(current.refs) !== refKey(entry.refs)) {
       changed = true;
       return Object.assign({}, entry, {
         start: current.start,
         durationSeconds: current.durationSeconds,
         text: current.text,
+        billable: current.billable,
         refs: current.refs,
         deleted: false,
         deletedAt: null
@@ -189,16 +192,110 @@ exports.issueForm = {
   }
 };
 
+function lockIsStale(account) {
+  return !account.lock || !account.lock.checkedAt || Date.now() - account.lock.checkedAt > LOCK_MAX_AGE;
+}
+
+function labelRefs(input, labels) {
+  const refs = {};
+  Object.keys(input.refs).forEach((key) => {
+    refs[key] = input.refs[key]
+      ? {id: input.refs[key], name: labels && labels[key] ? String(labels[key]) : input.refs[key]}
+      : null;
+  });
+  return refs;
+}
+
+function findIssue(id) {
+  try {
+    return entities.Issue.findById(id);
+  } catch {
+    return null;
+  }
+}
+
+function patchStoredEntry(issue, user, entry, refs) {
+  let changed = false;
+  const entries = common.readIssueEntries(issue).map((stored) => {
+    if (stored.id !== entry.id || stored.userLogin !== user.login) {
+      return stored;
+    }
+    changed = true;
+    return Object.assign({}, stored, {
+      start: entry.start,
+      durationSeconds: entry.durationSeconds,
+      text: entry.text,
+      billable: entry.billable,
+      refs: refs,
+      deleted: false,
+      deletedAt: null
+    });
+  });
+  if (changed) {
+    common.writeIssueEntries(issue, entries);
+  }
+  return entries;
+}
+
 exports.entries = {
   start: (job, env) => {
     const session = common.openSession(env.user, job.lang);
     job.provider = session.provider.id;
     const range = common.readRange(job.params.from, job.params.to, ENTRIES_MAX_DAYS, 'rangeTooLong');
+    job.state = {range: range};
+    if (lockIsStale(session.account)) {
+      return send(session.provider.verifyRequest());
+    }
     return send(session.provider.entriesRequest(session.account, range, true, false));
   },
-  next: (job, env, request, items) => done({
-    entries: common.linkIssues(providers.find(job.provider).parseEntries(items), env.user)
-  })
+  next: (job, env, request, data) => {
+    const provider = providers.find(job.provider);
+    if (!request.list) {
+      common.updateLock(env.user, provider.parseVerify(data, env.credentials).lock);
+      return send(provider.entriesRequest(common.readAccount(env.user).account, job.state.range, true, false));
+    }
+    return done({
+      entries: common.linkIssues(provider.parseEntries(data), env.user),
+      account: common.publicAccount(env.user, job.lang)
+    });
+  }
+};
+
+exports.update = {
+  start: (job, env) => {
+    const session = common.openSession(env.user, job.lang);
+    job.provider = session.provider.id;
+    const id = String(job.params.id || '');
+    if (!id) {
+      i18n.fail('invalidBody');
+    }
+    if (env.issue && !common.readIssueEntries(env.issue).some((entry) => entry.id === id && entry.userLogin === env.user.login)) {
+      i18n.fail('entryNotEditable');
+    }
+    const input = common.validateInput(session.provider, job.params.body);
+    job.state = {id: id, input: input, labels: job.params.body.labels || {}, previousText: String(job.params.previousText || '')};
+    job.params = {};
+    return send(session.provider.updateRequest(id, input));
+  },
+  next: (job, env, request, body) => {
+    const provider = providers.find(job.provider);
+    const entry = provider.parseUpdate(body);
+    const refs = labelRefs(job.state.input, job.state.labels);
+    if (env.issue) {
+      return done(common.issueSummary(env.user, job.lang, patchStoredEntry(env.issue, env.user, entry, refs)));
+    }
+    const ids = {};
+    ((entry.text + ' ' + job.state.previousText).match(common.ISSUE_ID_PATTERN) || []).forEach((issueId) => {
+      ids[issueId] = true;
+    });
+    Object.keys(ids).slice(0, 20).forEach((issueId) => {
+      const issue = findIssue(issueId);
+      if (issue) {
+        patchStoredEntry(issue, env.user, entry, refs);
+      }
+    });
+    return done({entry: entry});
+  }
 };
 
 exports.calendar = {
@@ -246,6 +343,7 @@ exports.create = {
       start: entry.start,
       durationSeconds: entry.durationSeconds,
       text: entry.text,
+      billable: entry.billable,
       refs: refs,
       userLogin: env.user.login,
       userName: env.user.visibleName

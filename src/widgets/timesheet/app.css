@@ -87,7 +87,7 @@
 
 .entry {
   display: grid;
-  grid-template-columns: 112px 64px minmax(0, 1fr);
+  grid-template-columns: 112px 64px minmax(0, 1fr) 20px;
   gap: calc(var(--ring-unit) * 2);
   align-items: baseline;
   padding: var(--ring-unit) calc(var(--ring-unit) * 2);
@@ -139,7 +139,7 @@
   }
 
   .entry {
-    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-columns: 64px minmax(0, 1fr) 20px;
   }
 
   .entry-time {
@@ -153,4 +153,19 @@
   align-items: center;
   gap: var(--ring-unit);
   min-width: 0;
+}
+
+.entry-edit {
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+}
+
+.entry-edit button {
+  opacity: 0.6;
+}
+
+.entry:hover .entry-edit button,
+.entry-edit button:focus-visible {
+  opacity: 1;
 }

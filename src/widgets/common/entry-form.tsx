@@ -10,7 +10,7 @@ import Panel from '@jetbrains/ring-ui-built/components/panel/panel';
 import {Content} from '@jetbrains/ring-ui-built/components/island/island';
 import type {Api} from './api';
 import {submitOnEnter} from './keyboard';
-import type {Calendar, EntryField, EntryForm as EntryFormSchema, EntryInput, Option} from './types';
+import type {Calendar, EditableEntry, EntryField, EntryForm as EntryFormSchema, EntryInput, Option} from './types';
 import {absenceLabel, daysFor} from './calendar';
 import {dateKey, formatDuration, formatTime, isSameDay, parseClockTime, parseDuration, startOfDay} from './duration';
 import {dateFnsLocale, t} from './i18n';
@@ -52,6 +52,15 @@ function initialSelection(schema: EntryFormSchema): Record<string, OptionItem | 
     initial[field.key] = preset ? toItem(preset) : null;
   });
   return initial;
+}
+
+function editSelection(entry: EditableEntry): Record<string, OptionItem | null> {
+  const selection: Record<string, OptionItem | null> = {};
+  Object.keys(entry.refs).forEach(key => {
+    const ref = entry.refs[key];
+    selection[key] = ref ? toItem({id: ref.id, label: ref.name}) : null;
+  });
+  return selection;
 }
 
 function collectLabels(selection: Record<string, OptionItem | null>): Record<string, string> {
@@ -152,19 +161,28 @@ export const EntryForm: React.FC<{
   onCancel?: () => void;
   variant?: 'inline' | 'dialog';
   initialSchema?: EntryFormSchema | null;
-}> = ({api, defaultText, projectKey, loadForm, submitLabel, onSubmit, onCancel, variant = 'inline', initialSchema = null}) => {
+  editEntry?: EditableEntry | null;
+}> = ({api, defaultText, projectKey, loadForm, submitLabel, onSubmit, onCancel, variant = 'inline', initialSchema = null, editEntry = null}) => {
   const [schema, setSchema] = useState<EntryFormSchema | null>(initialSchema);
   const [schemaError, setSchemaError] = useState<string | null>(null);
 
-  const [date, setDate] = useState<Date>(() => startOfDay(new Date()));
-  const [durationInput, setDurationInput] = useState('');
-  const [startInput, setStartInput] = useState('');
-  const [startTouched, setStartTouched] = useState(false);
-  const [text, setText] = useState(defaultText);
-  const [billable, setBillable] = useState(initialSchema ? initialSchema.defaults.billable : true);
-  const [selection, setSelection] = useState<Record<string, OptionItem | null>>(
-    () => (initialSchema ? initialSelection(initialSchema) : {})
-  );
+  const [date, setDate] = useState<Date>(() => startOfDay(editEntry ? new Date(editEntry.start) : new Date()));
+  const [durationInput, setDurationInput] = useState(() => (editEntry ? formatDuration(editEntry.durationSeconds) : ''));
+  const [startInput, setStartInput] = useState(() => (editEntry ? formatTime(new Date(editEntry.start)) : ''));
+  const [startTouched, setStartTouched] = useState(!!editEntry);
+  const [text, setText] = useState(editEntry ? editEntry.text : defaultText);
+  const [billable, setBillable] = useState(() => {
+    if (editEntry) {
+      return editEntry.billable !== false;
+    }
+    return initialSchema ? initialSchema.defaults.billable : true;
+  });
+  const [selection, setSelection] = useState<Record<string, OptionItem | null>>(() => {
+    if (editEntry) {
+      return editSelection(editEntry);
+    }
+    return initialSchema ? initialSelection(initialSchema) : {};
+  });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showErrors, setShowErrors] = useState(false);
@@ -196,8 +214,10 @@ export const EntryForm: React.FC<{
         if (cancelled) {
           return;
         }
-        setSelection(initialSelection(result));
-        setBillable(result.defaults.billable);
+        if (!editEntry) {
+          setSelection(initialSelection(result));
+          setBillable(result.defaults.billable);
+        }
         setSchema(result);
       })
       .catch(e => {
@@ -208,7 +228,7 @@ export const EntryForm: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [loadForm, initialSchema]);
+  }, [loadForm, initialSchema, editEntry]);
 
   const durationSeconds = useMemo(() => parseDuration(durationInput), [durationInput]);
   const effectiveStart = startTouched ? startInput : suggestStart(date, durationSeconds);

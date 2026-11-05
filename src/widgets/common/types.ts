@@ -21,7 +21,24 @@ export interface Account {
   name: string;
   email: string;
   company: string | null;
+  lock?: EditLock | null;
   links: ProviderLink[];
+}
+
+export interface EditLock {
+  known: boolean;
+  unrestricted: boolean;
+  date: string | null;
+  days: number | null;
+}
+
+export interface EditableEntry {
+  id: string;
+  start: string;
+  durationSeconds: number;
+  text: string;
+  billable: boolean | null;
+  refs: Record<string, NamedRef | null>;
 }
 
 export interface ProviderLink {
@@ -90,6 +107,7 @@ export interface IssueEntry {
   userName: string;
   mine: boolean;
   deleted: boolean;
+  billable?: boolean | null;
   refs?: Record<string, NamedRef | null>;
 }
 
