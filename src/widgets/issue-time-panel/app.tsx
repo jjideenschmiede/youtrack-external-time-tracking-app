@@ -249,12 +249,6 @@ const AppComponent: React.FunctionComponent = () => {
       <div className="panel-fields">
         <span className="ett-label">{t('total')}</span>
         <span className="ett-duration">{summary.totalSeconds > 0 ? formatDuration(summary.totalSeconds) : '—'}</span>
-        {summary.mySeconds > 0 && summary.mySeconds !== summary.totalSeconds && (
-          <>
-            <span className="ett-label">{t('mine')}</span>
-            <span className="ett-duration">{formatDuration(summary.mySeconds)}</span>
-          </>
-        )}
       </div>
 
       {entries.length > 0 && (
