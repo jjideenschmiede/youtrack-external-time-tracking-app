@@ -15,6 +15,19 @@ function send(request) {
   return {request: request};
 }
 
+function optionsKey(field, refs) {
+  return 'options:' + field + ':' + (field === 'project' && refs && refs.customer ? refs.customer : '');
+}
+
+function cachedMatch(user, field, refs, value) {
+  const cached = common.readCache(user, optionsKey(field, refs));
+  if (!cached) {
+    return null;
+  }
+  const wanted = value.trim().toLowerCase();
+  return cached.data.options.find((option) => String(option.label).trim().toLowerCase() === wanted) || null;
+}
+
 function refKey(refs) {
   return ['customer', 'project', 'service']
     .map((key) => (refs && refs[key] ? refs[key].id : ''))
@@ -47,6 +60,11 @@ function advanceForm(job, env) {
       parentRefs[field.dependsOn] = refs[field.dependsOn] ? refs[field.dependsOn].id : null;
     }
     state.pending = {field: field.key, label: field.label, value: value, source: sourceField};
+    const cached = cachedMatch(env.user, field.key, parentRefs, value);
+    if (cached) {
+      applyMatch(job, cached);
+      continue;
+    }
     const request = provider.findRequest(field.key, parentRefs, value);
     if (request) {
       return send(request);
@@ -138,6 +156,7 @@ exports.connect = {
 };
 
 exports.options = {
+  cacheKey: (job) => optionsKey(job.params.field, job.params.refs),
   start: (job, env) => {
     const session = common.openSession(env.user, job.lang);
     job.provider = session.provider.id;
@@ -183,6 +202,7 @@ exports.entries = {
 };
 
 exports.calendar = {
+  cacheKey: (job) => 'calendar:' + job.params.fromDate + ':' + job.params.toDate,
   start: (job, env) => {
     const session = common.openSession(env.user, job.lang);
     job.provider = session.provider.id;

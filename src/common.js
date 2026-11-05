@@ -4,6 +4,9 @@ const i18n = require('./i18n');
 
 const ISSUE_ID_PATTERN = /\b[A-Z][A-Z0-9_]*-\d+\b/g;
 const MAX_ISSUE_REFS = 200;
+const CACHE_FRESH = 10 * 60 * 1000;
+const CACHE_MAX_AGE = 24 * 3600 * 1000;
+const CACHE_MAX_KEYS = 40;
 
 function parseJson(value, fallback) {
   if (!value) {
@@ -104,6 +107,7 @@ function saveConnection(user, lang, provider, profile, credentials) {
   });
   user.extensionProperties.timeTrackingCredentials = JSON.stringify(credentials);
   user.extensionProperties.timeTrackingPreferences = null;
+  user.extensionProperties.timeTrackingCache = null;
   return accountStatus(user, lang);
 }
 
@@ -130,6 +134,7 @@ function disconnect(user, lang) {
   user.extensionProperties.timeTrackingAccount = null;
   user.extensionProperties.timeTrackingCredentials = null;
   user.extensionProperties.timeTrackingPreferences = null;
+  user.extensionProperties.timeTrackingCache = null;
   return accountStatus(user, lang);
 }
 
@@ -303,6 +308,31 @@ function writeIssueEntries(issue, entries) {
   issue.extensionProperties.timeTrackingEntries = entries.length > 0 ? JSON.stringify(entries) : null;
 }
 
+function readCache(user, key) {
+  const cache = parseJson(user.extensionProperties.timeTrackingCache, {});
+  const cached = cache && cache[key];
+  const age = cached ? Date.now() - cached.at : Infinity;
+  if (!cached || age > CACHE_MAX_AGE) {
+    return null;
+  }
+  return {data: cached.data, fresh: age < CACHE_FRESH};
+}
+
+function writeCache(user, key, data) {
+  const now = Date.now();
+  const cache = parseJson(user.extensionProperties.timeTrackingCache, {}) || {};
+  cache[key] = {at: now, data: data};
+  const kept = {};
+  Object.keys(cache)
+    .filter((name) => cache[name] && now - cache[name].at <= CACHE_MAX_AGE)
+    .sort((a, b) => cache[b].at - cache[a].at)
+    .slice(0, CACHE_MAX_KEYS)
+    .forEach((name) => {
+      kept[name] = cache[name];
+    });
+  user.extensionProperties.timeTrackingCache = JSON.stringify(kept);
+}
+
 function readIssueEntries(issue) {
   const entries = parseJson(issue.extensionProperties.timeTrackingEntries, []);
   return Array.isArray(entries) ? entries : [];
@@ -371,6 +401,8 @@ exports.linkIssues = linkIssues;
 exports.readRange = readRange;
 exports.readDateRange = readDateRange;
 exports.issueSummary = issueSummary;
+exports.readCache = readCache;
+exports.writeCache = writeCache;
 exports.readIssueEntries = readIssueEntries;
 exports.writeIssueEntries = writeIssueEntries;
 exports.readProjectIndex = readProjectIndex;

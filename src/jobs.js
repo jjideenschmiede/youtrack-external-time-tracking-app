@@ -77,7 +77,14 @@ function start(ctx, lang, kind, params) {
     status: 'pending',
     created: Date.now()
   };
-  const step = tasks[kind].start(job, environment(ctx, null));
+  const task = tasks[kind];
+  const cacheKey = task.cacheKey ? task.cacheKey(job) : null;
+  const cached = cacheKey ? common.readCache(user, cacheKey) : null;
+  if (cached && cached.fresh) {
+    return cached.data;
+  }
+  job.cacheKey = cacheKey;
+  const step = task.start(job, environment(ctx, null));
   if (!step.request) {
     return step.result;
   }
@@ -87,7 +94,7 @@ function start(ctx, lang, kind, params) {
   const jobs = pruneJobs(readJobs(user));
   jobs[job.id] = job;
   writeJobs(user, jobs);
-  return {job: job.id};
+  return cached ? cached.data : {job: job.id};
 }
 
 function readBody(response) {
@@ -145,6 +152,9 @@ function onProviderResponse(ctx) {
       dispatch(ctx, job, step.request, credentials, pendingCredentials);
     } else {
       finish(job, step.result);
+      if (job.cacheKey) {
+        common.writeCache(user, job.cacheKey, step.result);
+      }
     }
   } catch (e) {
     const message = i18n.errorMessage(job.lang, e);

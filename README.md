@@ -58,7 +58,7 @@ The Time Tracking panel and the "Log Time" dialog in issues are only visible to 
 
 Optionally, administrators can map YouTrack fields to the customer, project and service of the time tracking system in the app settings, either globally or per project. If an issue field contains a value, the matching entry is preselected in the form.
 
-The issue panel and the project report show the time entries that were logged via the app. Changes made directly in the time tracking system are synchronized when the person who logged the entry opens the issue, at most every 10 minutes.
+The issue panel and the project report show the time entries that were logged via the app. Changes made directly in the time tracking system are synchronized when the person who logged the entry opens the issue, at most every 10 minutes. Customers, projects, services, absences and public holidays are cached per user for 10 minutes, so new entries in these lists appear in the form after at most 10 minutes.
 
 > [!NOTE]
 > Always install updates over the existing app. Deleting the app removes the connected accounts and the overview of logged time on issues in YouTrack. The time entries themselves remain in the time tracking system.
