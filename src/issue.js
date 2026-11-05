@@ -18,7 +18,7 @@ exports.httpHandler = {
       method: 'POST',
       path: 'refresh',
       handle: (ctx) => {
-        common.respond(ctx, (lang) => jobs.start(ctx, lang, 'refresh', {}));
+        common.respond(ctx, (lang) => jobs.start(ctx, lang, 'refresh', {issueId: ctx.issue.id}));
       }
     },
     {

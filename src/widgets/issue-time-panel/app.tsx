@@ -21,14 +21,22 @@ const VISIBLE_ENTRIES = 3;
 const REFRESH_INTERVAL = 10 * 60 * 1000;
 const REFRESH_WINDOW = 60 * 24 * 3600 * 1000;
 
-function claimRefresh(issueId: string): boolean {
-  const key = `ett-refresh-${issueId}`;
+const REFRESH_KEY = 'ett-refresh';
+
+async function claimRefresh(issueId: string): Promise<boolean> {
   try {
-    const last = Number(window.localStorage.getItem(key) || 0);
-    if (Date.now() - last < REFRESH_INTERVAL) {
+    const now = Date.now();
+    const stored = JSON.parse(await host.storage.getItem(REFRESH_KEY) || '{}') as Record<string, number>;
+    if (now - (stored[issueId] || 0) < REFRESH_INTERVAL) {
       return false;
     }
-    window.localStorage.setItem(key, String(Date.now()));
+    const kept: Record<string, number> = {[issueId]: now};
+    Object.keys(stored).forEach(key => {
+      if (now - stored[key] < REFRESH_INTERVAL) {
+        kept[key] = stored[key];
+      }
+    });
+    await host.storage.setItem(REFRESH_KEY, JSON.stringify(kept));
   } catch {
     return true;
   }
@@ -107,7 +115,7 @@ const AppComponent: React.FunctionComponent = () => {
       const [nextSummary, nextIssue] = await Promise.all([api.getIssueSummary(), loadIssueContext(host)]);
       setSummary(nextSummary);
       setIssue(nextIssue);
-      if (needsRefresh(nextSummary) && claimRefresh(nextIssue.id)) {
+      if (needsRefresh(nextSummary) && await claimRefresh(nextIssue.id)) {
         api.refreshIssue()
           .then(async result => {
             if (result.changed) {

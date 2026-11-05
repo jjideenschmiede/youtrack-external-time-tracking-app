@@ -345,6 +345,8 @@ exports.create = {
 };
 
 exports.refresh = {
+  cacheKey: (job) => (job.params.issueId ? 'refresh:' + job.params.issueId : null),
+  fromCache: () => ({changed: false}),
   start: (job, env) => {
     const connection = common.readAccount(env.user);
     if (!connection) {

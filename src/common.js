@@ -6,7 +6,7 @@ const ISSUE_ID_PATTERN = /\b[A-Z][A-Z0-9_]*-\d+\b/g;
 const MAX_ISSUE_REFS = 200;
 const CACHE_FRESH = 10 * 60 * 1000;
 const CACHE_MAX_AGE = 24 * 3600 * 1000;
-const CACHE_MAX_KEYS = 40;
+const CACHE_MAX_KEYS = 80;
 
 function parseJson(value, fallback) {
   if (!value) {

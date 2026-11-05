@@ -82,8 +82,9 @@ function start(ctx, lang, kind, params) {
   const task = tasks[kind];
   const cacheKey = task.cacheKey ? task.cacheKey(job) : null;
   const cached = cacheKey ? common.readCache(user, cacheKey) : null;
+  const cachedData = cached ? (task.fromCache ? task.fromCache(cached.data) : cached.data) : null;
   if (cached && cached.fresh) {
-    return cached.data;
+    return cachedData;
   }
   job.cacheKey = cacheKey;
   const step = task.start(job, environment(ctx, null));
@@ -96,7 +97,7 @@ function start(ctx, lang, kind, params) {
   const jobs = pruneJobs(readJobs(user));
   jobs[job.id] = job;
   writeJobs(user, jobs);
-  return cached ? cached.data : {job: job.id};
+  return cached ? cachedData : {job: job.id};
 }
 
 function readBody(response) {
