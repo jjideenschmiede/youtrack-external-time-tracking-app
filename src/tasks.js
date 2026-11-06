@@ -598,3 +598,87 @@ exports.clockStop = {
     return done(clockResult(env, job.lang));
   }
 };
+
+function advanceRefs(job, env) {
+  const state = job.state;
+  const provider = providers.find(job.provider);
+  while (state.queue.length > 0) {
+    const field = provider.entryFields.find((item) => item.key === state.queue[0].field);
+    const parentRefs = {};
+    if (field.dependsOn) {
+      parentRefs[field.dependsOn] = state.refs[field.dependsOn] ? state.refs[field.dependsOn].id : null;
+    }
+    const cached = cachedMatch(env.user, field.key, parentRefs, state.queue[0].value);
+    if (cached) {
+      acceptRef(job, cached);
+      continue;
+    }
+    const request = provider.findRequest(field.key, parentRefs, state.queue[0].value);
+    if (!request) {
+      i18n.fail('fieldRequired', {field: field.label});
+    }
+    return send(request);
+  }
+  const target = exports[state.then];
+  const body = Object.assign({}, state.body, {refs: {}, labels: {}});
+  Object.keys(state.refs).forEach((key) => {
+    body.refs[key] = state.refs[key] ? state.refs[key].id : null;
+    body.labels[key] = state.refs[key] ? state.refs[key].label : null;
+  });
+  job.params = {body: body};
+  job.kind = state.then;
+  return target.start(job, env);
+}
+
+function acceptRef(job, option) {
+  const state = job.state;
+  const pending = state.queue.shift();
+  if (!option) {
+    const provider = providers.find(job.provider);
+    const field = provider.entryFields.find((item) => item.key === pending.field);
+    i18n.fail('optionNotFound', {field: field.label, value: pending.value, provider: provider.name});
+  }
+  const changed = !state.refs[pending.field] || state.refs[pending.field].id !== option.id;
+  state.refs[pending.field] = option;
+  if (changed && pending.field === 'customer' && !state.named.project) {
+    state.refs.project = null;
+  }
+}
+
+exports.assisted = {
+  start: (job, env) => {
+    const session = common.openSession(env.user, job.lang);
+    job.provider = session.provider.id;
+    if (!env.issue) {
+      i18n.fail('issueNotFound', {issue: job.issueId || ''});
+    }
+    const form = common.entryForm(env.user, job.lang, env.issue.project.key);
+    const names = job.params.names || {};
+    const refs = {};
+    const named = {};
+    session.provider.entryFields.forEach((field) => {
+      const preset = form.defaults.refs[field.key];
+      refs[field.key] = preset ? {id: preset.id, label: preset.label} : null;
+      named[field.key] = !!names[field.key];
+    });
+    const body = Object.assign({}, job.params.body);
+    if (typeof body.billable !== 'boolean') {
+      body.billable = form.defaults.billable;
+    }
+    job.state = {
+      then: job.params.then,
+      body: body,
+      refs: refs,
+      named: named,
+      queue: ['customer', 'project', 'service']
+        .filter((key) => names[key])
+        .map((key) => ({field: key, value: String(names[key])}))
+    };
+    job.params = {};
+    return advanceRefs(job, env);
+  },
+  next: (job, env, request, items) => {
+    acceptRef(job, providers.find(job.provider).matchOption(items, job.state.queue[0].value));
+    return advanceRefs(job, env);
+  }
+};

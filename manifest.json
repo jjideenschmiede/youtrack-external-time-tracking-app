@@ -11,6 +11,7 @@
   },
   "icon": "icon.svg",
   "minYouTrackVersion": "2026.2.0",
+  "aiToolPrefix": "time_tracking",
   "widgets": [
     {
       "key": "timesheet",

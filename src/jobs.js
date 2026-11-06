@@ -1,3 +1,4 @@
+const entities = require('@jetbrains/youtrack-scripting-api/entities');
 const common = require('./common');
 const providers = require('./providers');
 const tasks = require('./tasks');
@@ -5,7 +6,7 @@ const i18n = require('./i18n');
 
 const HANDLER = 'onProviderResponse';
 const PENDING_TTL = 10 * 60 * 1000;
-const FINISHED_TTL = 60 * 1000;
+const FINISHED_TTL = 10 * 60 * 1000;
 const MAX_JOBS = 8;
 const MAX_PAGES = 8;
 
@@ -35,11 +36,20 @@ function pruneJobs(jobs) {
   return kept;
 }
 
-function environment(ctx, credentials) {
+function findIssue(id) {
+  try {
+    return id ? entities.Issue.findById(id) : null;
+  } catch {
+    return null;
+  }
+}
+
+function environment(ctx, credentials, job) {
+  const issue = ctx.issue || findIssue(job && job.issueId);
   return {
     user: ctx.currentUser,
-    issue: ctx.issue || null,
-    project: ctx.project || null,
+    issue: issue || null,
+    project: ctx.project || (issue ? issue.project : null),
     settings: ctx.settings || {},
     credentials: credentials
   };
@@ -79,7 +89,8 @@ function start(ctx, lang, kind, params) {
     state: {},
     buffer: [],
     status: 'pending',
-    created: Date.now()
+    created: Date.now(),
+    issueId: ctx.issue ? null : (params && params.issueId) || null
   };
   const task = tasks[kind];
   const cacheKey = task.cacheKey ? task.cacheKey(job) : null;
@@ -92,7 +103,7 @@ function start(ctx, lang, kind, params) {
     return cachedData;
   }
   job.cacheKey = cacheKey;
-  const step = task.start(job, environment(ctx, null));
+  const step = task.start(job, environment(ctx, null, job));
   if (!step.request) {
     return step.result;
   }
@@ -155,7 +166,7 @@ function onProviderResponse(ctx) {
       data = job.buffer;
       job.buffer = [];
     }
-    const step = tasks[job.kind].next(job, environment(ctx, credentials), request, data);
+    const step = tasks[job.kind].next(job, environment(ctx, credentials, job), request, data);
     if (step.request) {
       dispatch(ctx, job, step.request, credentials, pendingCredentials);
     } else {

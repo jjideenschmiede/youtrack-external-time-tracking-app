@@ -69,6 +69,39 @@ function needsRefs(entry, range) {
   return !entry.deleted && !entry.refsChecked && !hasRefs(entry) && start >= range.from && start < range.to;
 }
 
+function stripIssueId(text, issueId) {
+  return (text || '').replace(new RegExp('^' + issueId + '[:\\s-]*'), '').trim();
+}
+
+function collect(project, user, range, settings) {
+  const entries = [];
+  let missingRefs = false;
+  projectIssues(project, user).forEach((issue) => {
+    const ref = {id: issue.id, summary: issue.summary, url: issue.url, estimateSeconds: common.issueEstimate(issue, settings)};
+    common.readIssueEntries(issue).forEach((entry) => {
+      const start = new Date(entry.start).getTime();
+      if (entry.deleted || isNaN(start) || start < range.from || start >= range.to) {
+        return;
+      }
+      missingRefs = missingRefs || needsRefs(entry, range);
+      entries.push({
+        id: entry.id,
+        start: entry.start,
+        durationSeconds: entry.durationSeconds,
+        text: stripIssueId(entry.text, issue.id),
+        userLogin: entry.userLogin,
+        userName: entry.userName,
+        mine: entry.userLogin === user.login,
+        refs: entry.refs || {},
+        issue: ref
+      });
+    });
+  });
+  entries.sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
+  return {entries: entries, needsRefs: missingRefs};
+}
+
+exports.collect = collect;
 exports.readRange = readRange;
 exports.projectIssues = projectIssues;
 exports.hasRefs = hasRefs;
