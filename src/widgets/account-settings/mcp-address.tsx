@@ -1,6 +1,5 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
-import Input, {Size as InputSize} from '@jetbrains/ring-ui-built/components/input/input';
 import Link from '@jetbrains/ring-ui-built/components/link/link';
 import copyIcon from '@jetbrains/icons/copy';
 import type {HostAPI} from '../../../@types/globals';
@@ -33,22 +32,38 @@ async function youtrackUrl(host: HostAPI): Promise<string | null> {
   return pageOrigin();
 }
 
-function copyFromInput(input: HTMLInputElement | null): boolean {
-  if (!input) {
-    return false;
-  }
-  input.focus();
-  input.select();
+function copyWithSelection(text: string): boolean {
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.opacity = '0';
+  document.body.appendChild(area);
+  area.select();
+  let copied = false;
   try {
-    return document.execCommand('copy');
+    copied = document.execCommand('copy');
   } catch {
-    return false;
+    copied = false;
   }
+  area.remove();
+  return copied;
+}
+
+function selectText(element: HTMLElement | null) {
+  const selection = window.getSelection();
+  if (!element || !selection) {
+    return;
+  }
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  selection.removeAllRanges();
+  selection.addRange(range);
 }
 
 export const McpAddress: React.FC<{host: HostAPI}> = ({host}) => {
   const [address, setAddress] = useState<string | null>(null);
-  const field = useRef<HTMLInputElement | null>(null);
+  const [code, setCode] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     youtrackUrl(host).then(base => {
@@ -65,29 +80,22 @@ export const McpAddress: React.FC<{host: HostAPI}> = ({host}) => {
       host.alert(t('mcpCopied'));
       return;
     } catch {
-      if (copyFromInput(field.current)) {
+      if (copyWithSelection(address)) {
         host.alert(t('mcpCopied'));
         return;
       }
     }
-    field.current?.select();
+    selectText(code);
     host.alert(t('mcpCopyManually'));
-  }, [address, host]);
+  }, [address, code, host]);
 
   return (
     <section className="settings-section">
       <h3 className="settings-section-title">{t('mcpTitle')}</h3>
       <p className="settings-section-text">{t('mcpIntro')}</p>
       <div className="settings-copy">
-        <Input
-          inputRef={field}
-          readOnly
-          value={address ?? ''}
-          size={InputSize.FULL}
-          aria-label={t('mcpTitle')}
-          onFocus={event => event.target.select()}
-        />
-        <Button icon={copyIcon} disabled={!address} onClick={copy}>{t('mcpCopy')}</Button>
+        <code ref={setCode} className="settings-code">{address ?? ''}</code>
+        <Button inline icon={copyIcon} disabled={!address} onClick={copy}>{t('mcpCopy')}</Button>
       </div>
       <Link href={GUIDE_URL} target="_blank" rel="noopener noreferrer" className="ett-small">{t('mcpGuide')}</Link>
     </section>

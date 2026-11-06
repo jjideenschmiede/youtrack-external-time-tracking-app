@@ -78,14 +78,21 @@
 
 .settings-copy {
   display: flex;
-  gap: var(--ring-unit);
-  align-self: stretch;
-  max-width: 560px;
+  align-items: center;
+  gap: calc(var(--ring-unit) * 1.5);
+  max-width: 100%;
 }
 
-.settings-copy > :first-child {
-  flex: 1 1 auto;
-  min-width: 0;
+.settings-code {
+  overflow-wrap: anywhere;
+  padding: 2px calc(var(--ring-unit) * 0.75);
+  border-radius: var(--ring-border-radius);
+  color: var(--ring-text-color);
+  background-color: var(--ring-secondary-background-color);
+  font-family: var(--ring-font-family-monospace);
+  font-size: var(--ring-font-size-smaller);
+  line-height: var(--ring-line-height);
+  user-select: all;
 }
 
 @media (max-width: 480px) {
