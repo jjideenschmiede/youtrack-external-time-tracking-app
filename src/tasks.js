@@ -8,6 +8,7 @@ const DAY = 24 * 3600 * 1000;
 const ENTRIES_MAX_DAYS = 62;
 const REFRESH_WINDOW_DAYS = 60;
 const LOCK_MAX_AGE = 24 * 3600 * 1000;
+const CUSTOMER_GROUPS_SOURCE = 'Customer groups';
 
 function done(result) {
   return {result: result};
@@ -43,12 +44,15 @@ function advanceForm(job, env) {
   const refs = state.form.defaults.refs;
   while (state.index < fields.length) {
     const field = fields[state.index];
-    const sourceField = env.settings[field.key + 'Field'];
+    const configured = env.settings[field.key + 'Field'];
+    const fieldValue = configured ? common.readFieldValue(env.issue, env.user, configured) : null;
+    const groupValue = !fieldValue && field.key === 'customer' ? common.firstCustomerGroup(env.issue) : null;
+    const sourceField = groupValue ? CUSTOMER_GROUPS_SOURCE : configured;
+    const value = fieldValue || groupValue;
     if (!sourceField) {
       state.index++;
       continue;
     }
-    const value = common.readFieldValue(env.issue, env.user, sourceField);
     if (!value) {
       if (refs[field.key]) {
         refs[field.key] = null;
@@ -61,7 +65,7 @@ function advanceForm(job, env) {
     if (field.dependsOn) {
       parentRefs[field.dependsOn] = refs[field.dependsOn] ? refs[field.dependsOn].id : null;
     }
-    state.pending = {field: field.key, label: field.label, value: value, source: sourceField};
+    state.pending = {field: field.key, label: field.label, value: value, source: sourceField, silent: !fieldValue};
     const cached = cachedMatch(env.user, field.key, parentRefs, value);
     if (cached) {
       applyMatch(job, cached);
@@ -85,6 +89,9 @@ function applyMatch(job, option) {
   state.pending = null;
   state.index++;
   if (!option) {
+    if (pending.silent) {
+      return;
+    }
     state.warnings.push(i18n.translate(job.lang, 'mappingNotFound', {
       field: pending.label,
       value: pending.value,
@@ -633,6 +640,9 @@ function advanceRefs(job, env) {
 function acceptRef(job, option) {
   const state = job.state;
   const pending = state.queue.shift();
+  if (!option && pending.silent) {
+    return;
+  }
   if (!option) {
     const provider = providers.find(job.provider);
     const field = provider.entryFields.find((item) => item.key === pending.field);
@@ -653,13 +663,17 @@ exports.assisted = {
       i18n.fail('issueNotFound', {issue: job.issueId || ''});
     }
     const form = common.entryForm(env.user, job.lang, env.issue.project.key);
-    const names = job.params.names || {};
+    const names = Object.assign({}, job.params.names);
+    const group = names.customer ? null : common.firstCustomerGroup(env.issue);
+    if (group) {
+      names.customer = group;
+    }
     const refs = {};
     const named = {};
     session.provider.entryFields.forEach((field) => {
       const preset = form.defaults.refs[field.key];
       refs[field.key] = preset ? {id: preset.id, label: preset.label} : null;
-      named[field.key] = !!names[field.key];
+      named[field.key] = !!names[field.key] && !(group && field.key === 'customer');
     });
     const body = Object.assign({}, job.params.body);
     if (typeof body.billable !== 'boolean') {
@@ -672,7 +686,7 @@ exports.assisted = {
       named: named,
       queue: ['customer', 'project', 'service']
         .filter((key) => names[key])
-        .map((key) => ({field: key, value: String(names[key])}))
+        .map((key) => ({field: key, value: String(names[key]), silent: !!group && key === 'customer'}))
     };
     job.params = {};
     return advanceRefs(job, env);

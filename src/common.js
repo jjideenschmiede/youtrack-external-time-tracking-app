@@ -195,6 +195,17 @@ function readFieldValue(issue, user, fieldName) {
   return null;
 }
 
+function firstCustomerGroup(issue) {
+  try {
+    const groups = issue && issue.customerGroups;
+    const first = groups && !groups.isEmpty() ? groups.first() : null;
+    return first && first.name ? String(first.name).trim() || null : null;
+  } catch (e) {
+    console.warn('external-time-tracking: cannot read customer groups: ' + e.message);
+    return null;
+  }
+}
+
 function clearDependents(fields, refs, mapped, parentKey) {
   fields.forEach((child) => {
     if (child.dependsOn === parentKey && !mapped[child.key]) {
@@ -455,6 +466,7 @@ exports.disconnect = disconnect;
 exports.ISSUE_ID_PATTERN = ISSUE_ID_PATTERN;
 exports.entryForm = entryForm;
 exports.readFieldValue = readFieldValue;
+exports.firstCustomerGroup = firstCustomerGroup;
 exports.clearDependents = clearDependents;
 exports.validateInput = validateInput;
 exports.labelRefs = labelRefs;
