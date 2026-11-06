@@ -9,6 +9,7 @@ import {createApi} from '../common/api';
 import {submitOnEnter} from '../common/keyboard';
 import type {Account, AccountStatus, ProviderInfo} from '../common/types';
 import {t} from '../common/i18n';
+import {McpAddress} from './mcp-address';
 
 const host = await YTApp.register();
 const isOwnProfile = !YTApp.entity || !YTApp.me || YTApp.entity.id === YTApp.me.id;
@@ -200,6 +201,7 @@ const AppComponent: React.FunctionComponent = () => {
         <Connected account={status.account} disconnecting={disconnecting} onDisconnect={handleDisconnect}/>
       )}
       {status && !status.account && <ConnectForm status={status} onConnected={handleConnected}/>}
+      {status && <McpAddress host={host}/>}
 
     </div>
   );

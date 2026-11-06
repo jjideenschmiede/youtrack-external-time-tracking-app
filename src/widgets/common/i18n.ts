@@ -17,6 +17,12 @@ const en = {
   learnMore: 'Learn more',
   credentialsNotice: 'Your credentials are stored in YouTrack only and are never sent back to the browser. ' +
     'Time entries are created on your behalf with the selected provider.',
+  mcpTitle: 'AI assistants (MCP)',
+  mcpIntro: 'With this address, AI assistants such as Claude or Cursor can query and log your time via the YouTrack MCP server.',
+  mcpCopy: 'Copy',
+  mcpCopied: 'Address copied.',
+  mcpCopyManually: 'The address is selected. Press Ctrl+C or Cmd+C to copy it.',
+  mcpGuide: 'Guide for Claude, Cursor and VS Code',
   settingsIntro: 'Connect your account with an external time tracking provider to log time directly from issues ' +
     'and see your weekly overview in YouTrack.',
   ownProfileOnly: 'The connection can only be set up in your own profile.',
@@ -131,6 +137,12 @@ const de: Messages = {
   learnMore: 'Mehr erfahren',
   credentialsNotice: 'Deine Zugangsdaten werden nur in YouTrack gespeichert und nie an den Browser zurückgegeben. ' +
     'Zeiteinträge werden in deinem Namen beim gewählten Anbieter angelegt.',
+  mcpTitle: 'KI-Assistenten (MCP)',
+  mcpIntro: 'Mit dieser Adresse können KI-Assistenten wie Claude oder Cursor über den MCP-Server von YouTrack deine Zeiten abfragen und buchen.',
+  mcpCopy: 'Kopieren',
+  mcpCopied: 'Adresse kopiert.',
+  mcpCopyManually: 'Die Adresse ist markiert. Mit Strg+C bzw. Cmd+C kopieren.',
+  mcpGuide: 'Anleitung für Claude, Cursor und VS Code',
   settingsIntro: 'Verbinde dein Konto bei einem externen Zeiterfassungsanbieter, um Zeiten direkt aus Tickets ' +
     'zu erfassen und deine Wochenübersicht in YouTrack zu sehen.',
   ownProfileOnly: 'Die Verbindung kann nur im eigenen Profil eingerichtet werden.',
