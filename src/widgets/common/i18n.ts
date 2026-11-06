@@ -22,7 +22,7 @@ const en = {
   mcpCopy: 'Copy',
   mcpCopied: 'Address copied.',
   mcpCopyManually: 'The address is selected. Press Ctrl+C or Cmd+C to copy it.',
-  mcpGuide: 'How to connect an AI assistant (YouTrack documentation)',
+  mcpGuide: 'How to connect an AI assistant',
   settingsIntro: 'Connect your account with an external time tracking provider to log time directly from issues ' +
     'and see your weekly overview in YouTrack.',
   ownProfileOnly: 'The connection can only be set up in your own profile.',
@@ -142,7 +142,7 @@ const de: Messages = {
   mcpCopy: 'Kopieren',
   mcpCopied: 'Adresse kopiert.',
   mcpCopyManually: 'Die Adresse ist markiert. Mit Strg+C bzw. Cmd+C kopieren.',
-  mcpGuide: 'KI-Assistenten verbinden (YouTrack-Dokumentation)',
+  mcpGuide: 'KI-Assistenten verbinden',
   settingsIntro: 'Verbinde dein Konto bei einem externen Zeiterfassungsanbieter, um Zeiten direkt aus Tickets ' +
     'zu erfassen und deine Wochenübersicht in YouTrack zu sehen.',
   ownProfileOnly: 'Die Verbindung kann nur im eigenen Profil eingerichtet werden.',
