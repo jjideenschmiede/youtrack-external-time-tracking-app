@@ -84,11 +84,7 @@ All settings are optional and can be set globally or per project. MCP tools alwa
 
 ## MCP Tools
 
-The app provides tools for AI assistants that are connected to YouTrack via the [YouTrack MCP server](https://www.jetbrains.com/help/youtrack/server/model-context-protocol-server.html). Custom tools have to be enabled in the MCP endpoint URL:
-
-```
-https://<your-youtrack>/mcp?customToolPackages=external-time-tracking
-```
+The app provides tools for AI assistants that are connected to YouTrack via the [YouTrack MCP server](https://www.jetbrains.com/help/youtrack/server/model-context-protocol-server.html).
 
 | Tool | Description |
 | --- | --- |
@@ -100,7 +96,42 @@ https://<your-youtrack>/mcp?customToolPackages=external-time-tracking
 | `time_tracking_stop_clock` | Stops the running clock and adds the entry to its issue. |
 | `time_tracking_job_result` | Returns the result of the tools above that call the time tracking system. |
 
-Every tool runs with the permissions of the connected user, who needs `Create Work Items` for the issue tools and a connected account for the tools that call the time tracking system. These tools answer with a job ID right away, and the assistant gets the result with `time_tracking_job_result`. Customer, project and service default to the last selection of the user in the issue project; the assistant can pass other names. After the app is installed or updated, reconnect the assistant to see new tools.
+Every tool runs with the permissions of the connected user, who needs `Create Work Items` for the issue tools and a connected account for the tools that call the time tracking system. These tools answer with a job ID right away, and the assistant gets the result with `time_tracking_job_result`. Customer, project and service default to the last selection of the user in the issue project; the assistant can pass other names.
+
+### Connecting an AI assistant
+
+For security reasons, YouTrack only offers tools of apps that are listed in the URL of the MCP server. Add the parameter `customToolPackages` to the URL of your YouTrack MCP server:
+
+```
+https://youtrack.example.com/mcp?customToolPackages=external-time-tracking
+```
+
+All built-in YouTrack tools keep working with this URL, so you can replace an existing YouTrack connection instead of adding a second one. If you already use tools of other apps, separate the app names with commas, for example `customToolPackages=other-app,external-time-tracking`.
+
+**Claude (claude.ai and Claude Desktop):** Open Settings, then Connectors, remove an existing YouTrack connector and add a custom connector with the URL above. Sign in to YouTrack when you are asked to.
+
+**Claude Code:** Create a [permanent token](https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html) in YouTrack and run:
+
+```
+claude mcp add --transport http youtrack "https://youtrack.example.com/mcp?customToolPackages=external-time-tracking" --header "Authorization: Bearer <token>"
+```
+
+**Cursor, VS Code and other clients:** Add the server to the MCP configuration of the client, for example in `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "youtrack": {
+      "url": "https://youtrack.example.com/mcp?customToolPackages=external-time-tracking",
+      "headers": {
+        "Authorization": "Bearer <token>"
+      }
+    }
+  }
+}
+```
+
+After the app is installed or updated, disconnect and reconnect the assistant, otherwise it doesn't see new tools.
 
 ## Development
 
