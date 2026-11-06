@@ -29,7 +29,7 @@ The App lets every user connect their own account of an external time tracking s
 
 - Personal connection to the time tracking system in the YouTrack profile, credentials are verified before saving and never sent back to the browser
 - Time Tracking panel in the issue sidebar with the total tracked time and a form for new entries
-- Clock in the issue panel: start the clock of the time tracking system with one click, see the elapsed time and stop it again, optionally rounded to blocks of 5, 10, 15, 30 or 60 minutes
+- Clock in the issue panel: start the clock of the time tracking system with one click, see the elapsed time and stop it again, also from the weekly timesheet, optionally rounded to blocks of 5, 10, 15, 30 or 60 minutes
 - Optional comparison of the tracked time with the estimation of the issue, also without YouTrack's built-in time tracking
 - "Log Time" dialog in the issue options menu
 - Edit your own time entries from the issue panel and the weekly timesheet, as long as the editing lock of the time tracking system allows it
@@ -37,6 +37,7 @@ The App lets every user connect their own account of an external time tracking s
 - Time Tracking tab in each project with a weekly or monthly report grouped by issue, person, customer, project or service, including CSV export
 - Automatic preselection of customer, project and service based on YouTrack issue fields
 - Remembers the last selected values per project
+- MCP tools for AI assistants: ask for project reports and the time on an issue, load your own entries, log time and start or stop the clock
 - User interface in English and German, based on the user's YouTrack language
 
 ## Requirements
@@ -69,6 +70,38 @@ The issue panel and the project report show the time entries that were logged vi
 
 > [!NOTE]
 > Always install updates over the existing app. Deleting the app removes the connected accounts and the overview of logged time on issues in YouTrack. The time entries themselves remain in the time tracking system.
+
+### App settings
+
+All settings are optional and can be set globally or per project. MCP tools always use the global settings.
+
+| Setting | Description |
+| --- | --- |
+| Customer field, Project field, Service field | Names of YouTrack fields whose values match customers, projects or services of the time tracking system. The matching entry is preselected in the form. |
+| Estimation field | Name of a period field with the estimation, for example "Estimation". |
+| Clock rounding | Rounds stopped clock entries to blocks of 5, 10, 15, 30 or 60 minutes. "Off" by default. |
+| Rounding mode | "Round up" counts every started block, "Round to nearest" rounds to the closest block. At least one block is always logged. |
+
+## MCP Tools
+
+The app provides tools for AI assistants that are connected to YouTrack via the [YouTrack MCP server](https://www.jetbrains.com/help/youtrack/server/model-context-protocol-server.html). Custom tools have to be enabled in the MCP endpoint URL:
+
+```
+https://<your-youtrack>/mcp?customToolPackages=external-time-tracking
+```
+
+| Tool | Description |
+| --- | --- |
+| `time_tracking_project_report` | Time logged in a project for a date range, grouped by issue, user, customer, project or service. Requires `Update Not Own Work Items` in the project. |
+| `time_tracking_issue_time` | Total time, estimation, entries and the running clock of an issue. |
+| `time_tracking_my_entries` | Your own entries from the time tracking system for up to 62 days. |
+| `time_tracking_log_time` | Logs time on an issue, for example "log 1h 30m on DEMO-3 for the review". |
+| `time_tracking_start_clock` | Starts the clock for an issue. |
+| `time_tracking_stop_clock` | Stops the running clock and adds the entry to its issue. |
+| `time_tracking_job_result` | Returns the result of the tools above that call the time tracking system. |
+
+Every tool runs with the permissions of the connected user, who needs `Create Work Items` for the issue tools and a connected account for the tools that call the time tracking system. These tools answer with a job ID right away, and the assistant gets the result with `time_tracking_job_result`. Customer, project and service default to the last selection of the user in the issue project; the assistant can pass other names. After the app is installed or updated, reconnect the assistant to see new tools.
+
 
 ## Development
 
