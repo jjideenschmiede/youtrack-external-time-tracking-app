@@ -102,7 +102,6 @@ https://<your-youtrack>/mcp?customToolPackages=external-time-tracking
 
 Every tool runs with the permissions of the connected user, who needs `Create Work Items` for the issue tools and a connected account for the tools that call the time tracking system. These tools answer with a job ID right away, and the assistant gets the result with `time_tracking_job_result`. Customer, project and service default to the last selection of the user in the issue project; the assistant can pass other names. After the app is installed or updated, reconnect the assistant to see new tools.
 
-
 ## Development
 
 > [!NOTE]
