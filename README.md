@@ -100,6 +100,8 @@ Every tool runs with the permissions of the connected user, who needs `Create Wo
 
 ### Connecting an AI assistant
 
+JetBrains describes how to connect AI assistants to YouTrack, including authentication with OAuth or a permanent token, in the documentation of the MCP server for [YouTrack Cloud](https://www.jetbrains.com/help/youtrack/cloud/model-context-protocol-server.html) and [YouTrack Server](https://www.jetbrains.com/help/youtrack/server/model-context-protocol-server.html). Every user also finds the complete address of the MCP server for this app in the YouTrack profile under "Time Tracking".
+
 For security reasons, YouTrack only offers tools of apps that are listed in the URL of the MCP server. Add the parameter `customToolPackages` to the URL of your YouTrack MCP server:
 
 ```

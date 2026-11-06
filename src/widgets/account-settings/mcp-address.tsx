@@ -6,7 +6,18 @@ import type {HostAPI} from '../../../@types/globals';
 import {t} from '../common/i18n';
 
 const APP_PACKAGE = 'external-time-tracking';
-const GUIDE_URL = 'https://plugins.jetbrains.com/plugin/35793-external-time-tracking';
+const GUIDE_URLS = {
+  cloud: 'https://www.jetbrains.com/help/youtrack/cloud/model-context-protocol-server.html',
+  server: 'https://www.jetbrains.com/help/youtrack/server/model-context-protocol-server.html'
+};
+
+function guideUrl(base: string | null): string {
+  try {
+    return base && new URL(base).hostname.endsWith('.youtrack.cloud') ? GUIDE_URLS.cloud : GUIDE_URLS.server;
+  } catch {
+    return GUIDE_URLS.server;
+  }
+}
 
 function pageOrigin(): string | null {
   const ancestors = window.location.ancestorOrigins;
@@ -63,10 +74,12 @@ function selectText(element: HTMLElement | null) {
 
 export const McpAddress: React.FC<{host: HostAPI}> = ({host}) => {
   const [address, setAddress] = useState<string | null>(null);
+  const [guide, setGuide] = useState(GUIDE_URLS.server);
   const [code, setCode] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     youtrackUrl(host).then(base => {
+      setGuide(guideUrl(base));
       setAddress(`${base ?? 'https://youtrack.example.com'}/mcp?customToolPackages=${APP_PACKAGE}`);
     });
   }, [host]);
@@ -97,7 +110,7 @@ export const McpAddress: React.FC<{host: HostAPI}> = ({host}) => {
         <code ref={setCode} className="settings-code">{address ?? ''}</code>
         <Button inline icon={copyIcon} disabled={!address} onClick={copy}>{t('mcpCopy')}</Button>
       </div>
-      <Link href={GUIDE_URL} target="_blank" rel="noopener noreferrer" className="ett-small">{t('mcpGuide')}</Link>
+      <Link href={guide} target="_blank" rel="noopener noreferrer" className="ett-small">{t('mcpGuide')}</Link>
     </section>
   );
 };
