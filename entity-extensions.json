@@ -39,6 +39,9 @@
       "properties": {
         "timeTrackingIssues": {
           "type": "string"
+        },
+        "timeTrackingEstimateField": {
+          "type": "string"
         }
       }
     }

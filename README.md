@@ -30,7 +30,7 @@ The App lets every user connect their own account of an external time tracking s
 - Personal connection to the time tracking system in the YouTrack profile, credentials are verified before saving and never sent back to the browser
 - Time Tracking panel in the issue sidebar with the total tracked time and a form for new entries
 - Clock in the issue panel: start the clock of the time tracking system with one click, see the elapsed time and stop it again, also from the weekly timesheet, optionally rounded to blocks of 5, 10, 15, 30 or 60 minutes, with an optional reminder for clocks that are running for a long time
-- Optional comparison of the tracked time with the estimation of the issue, also without YouTrack's built-in time tracking
+- Comparison of the tracked time with the estimation of the issue, based on the time tracking settings of the project or any other period field
 - "Log Time" dialog in the issue options menu
 - Edit your own time entries from the issue panel and the weekly timesheet, as long as the editing lock of the time tracking system allows it
 - Weekly timesheet in the YouTrack main menu, issue IDs in entry descriptions are linked to their issues
@@ -68,7 +68,7 @@ Clock entries can be rounded with the app settings "Clock rounding" and "Roundin
 
 With the app setting "Clock reminder", users get an e-mail notification from YouTrack when a clock that they started in an issue has been running for 1, 2, 4 or 8 hours. The notification is sent to the e-mail address in the YouTrack profile, so YouTrack needs a configured mail server. Before the notification is sent, the app checks in the time tracking system that the clock is still running. Every clock is reminded only once. Clocks that were started directly in the time tracking system are not reminded.
 
-To compare the tracked time with an estimation, enter the name of a period field, for example "Estimation", in the app setting "Estimation field". The issue panel then shows how much of the estimation has been used, and the project report shows the estimation per issue. The field works independently of YouTrack's built-in time tracking. Periods are converted with 8 hours per day and 5 days per week.
+The issue panel shows how much of the estimation of an issue has been used, and the project report shows the estimation per issue. By default, the app uses the estimation field from the time tracking settings of the project. To use another period field, or an estimation without YouTrack's built-in time tracking, enter its name, for example "Estimation", in the app setting "Estimation field". Periods are converted with 8 hours per day and 5 days per week.
 
 The issue panel and the project report show the time entries that were logged via the app. Changes made directly in the time tracking system are synchronized when the person who logged the entry opens the issue, at most every 10 minutes. Customers, projects, services, absences and public holidays are cached per user for 10 minutes, so new entries in these lists appear in the form after at most 10 minutes.
 
@@ -82,7 +82,7 @@ All settings are optional and can be set globally or per project. MCP tools alwa
 | Setting | Description |
 | --- | --- |
 | Customer field, Project field, Service field | Names of YouTrack fields whose values match customers, projects or services of the time tracking system. The matching entry is preselected in the form. |
-| Estimation field | Name of a period field with the estimation, for example "Estimation". |
+| Estimation field | Name of a period field with the estimation, for example "Estimation". Overrides the estimation field from the time tracking settings of the project. |
 | Clock rounding | Rounds stopped clock entries to blocks of 5, 10, 15, 30 or 60 minutes. "Off" by default. |
 | Rounding mode | "Round up" counts every started block, "Round to nearest" rounds to the closest block. At least one block is always logged. |
 | Clock reminder | Sends an e-mail notification to users when a clock started in an issue has been running for 1, 2, 4 or 8 hours. "Off" by default. |

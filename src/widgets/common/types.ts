@@ -123,6 +123,7 @@ export interface IssueSummary {
   account: Account | null;
   totalSeconds: number;
   estimateSeconds?: number | null;
+  estimationField?: string | null;
   clock?: RunningClock | null;
   entries: IssueEntry[];
 }

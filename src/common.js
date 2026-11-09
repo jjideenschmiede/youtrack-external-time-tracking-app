@@ -320,8 +320,24 @@ function periodPart(period, method) {
   return typeof period[method] === 'function' ? Number(period[method]()) || 0 : 0;
 }
 
+function projectEstimationField(project) {
+  try {
+    return project && project.isTimeTrackingEnabled ? project.extensionProperties.timeTrackingEstimateField || null : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveProjectEstimationField(project, name) {
+  const value = typeof name === 'string' && name.trim() && project.findFieldByName(name.trim()) ? name.trim() : null;
+  if ((project.extensionProperties.timeTrackingEstimateField || null) !== value) {
+    project.extensionProperties.timeTrackingEstimateField = value;
+  }
+}
+
 function issueEstimate(issue, settings) {
-  const fieldName = settings && typeof settings.estimationField === 'string' ? settings.estimationField.trim() : '';
+  const configured = settings && typeof settings.estimationField === 'string' ? settings.estimationField.trim() : '';
+  const fieldName = configured || (issue ? projectEstimationField(issue.project) : null);
   if (!issue || !fieldName) {
     return null;
   }
@@ -484,6 +500,8 @@ exports.readClock = readClock;
 exports.writeClock = writeClock;
 exports.publicClock = publicClock;
 exports.issueEstimate = issueEstimate;
+exports.projectEstimationField = projectEstimationField;
+exports.saveProjectEstimationField = saveProjectEstimationField;
 exports.readCache = readCache;
 exports.writeCache = writeCache;
 exports.readIssueEntries = readIssueEntries;

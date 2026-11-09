@@ -22,7 +22,7 @@
     "estimationField": {
       "type": "string",
       "title": "Estimation field",
-      "description": "Name of a period field that holds the estimation, e.g. \"Estimation\". The issue panel then shows the tracked time against it. Works without YouTrack time tracking."
+      "description": "By default, the estimation field from the time tracking settings of the project is used. Enter the name of another period field, e.g. \"Estimation\", to override it or to use an estimation without YouTrack time tracking."
     },
     "clockRounding": {
       "type": "string",
