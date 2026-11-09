@@ -313,6 +313,8 @@ function readDateRange(fromDate, toDate) {
   return {fromDate: fromDate, toDate: toDate};
 }
 
+const DEFAULT_ESTIMATION_FIELD = 'Estimation';
+const SPENT_TIME_FIELD = 'Spent time';
 const MINUTES_PER_DAY = 8 * 60;
 const DAYS_PER_WEEK = 5;
 
@@ -335,9 +337,26 @@ function saveProjectEstimationField(project, name) {
   }
 }
 
+function defaultEstimationField(project) {
+  const periods = [];
+  try {
+    project.fields.forEach((field) => {
+      if (field.typeName === 'period' && field.name !== SPENT_TIME_FIELD) {
+        periods.push(field.name);
+      }
+    });
+  } catch {
+    return null;
+  }
+  if (periods.indexOf(DEFAULT_ESTIMATION_FIELD) !== -1) {
+    return DEFAULT_ESTIMATION_FIELD;
+  }
+  return periods.length === 1 ? periods[0] : null;
+}
+
 function issueEstimate(issue, settings) {
   const configured = settings && typeof settings.estimationField === 'string' ? settings.estimationField.trim() : '';
-  const fieldName = configured || (issue ? projectEstimationField(issue.project) : null);
+  const fieldName = configured || (issue ? projectEstimationField(issue.project) || defaultEstimationField(issue.project) : null);
   if (!issue || !fieldName) {
     return null;
   }
