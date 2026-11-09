@@ -20,6 +20,9 @@
         },
         "timeTrackingClock": {
           "type": "string"
+        },
+        "timeTrackingClockReminder": {
+          "type": "boolean"
         }
       }
     },

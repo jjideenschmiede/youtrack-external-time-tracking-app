@@ -348,6 +348,10 @@ function writeClock(user, clock) {
   if (user.extensionProperties.timeTrackingClock !== next) {
     user.extensionProperties.timeTrackingClock = next;
   }
+  const remind = !!(clock && clock.issueId && !clock.reminded);
+  if (!!user.extensionProperties.timeTrackingClockReminder !== remind) {
+    user.extensionProperties.timeTrackingClockReminder = remind;
+  }
 }
 
 function publicClock(user) {

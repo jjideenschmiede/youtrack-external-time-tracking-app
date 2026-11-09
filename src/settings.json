@@ -47,6 +47,19 @@
         "Round to nearest"
       ],
       "default": "Round up"
+    },
+    "clockReminder": {
+      "type": "string",
+      "title": "Clock reminder",
+      "description": "Sends a YouTrack notification to the user when a clock started in an issue has been running for the selected time.",
+      "enum": [
+        "Off",
+        "1 hour",
+        "2 hours",
+        "4 hours",
+        "8 hours"
+      ],
+      "default": "Off"
     }
   }
 }

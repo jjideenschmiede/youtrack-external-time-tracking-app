@@ -29,7 +29,7 @@ The App lets every user connect their own account of an external time tracking s
 
 - Personal connection to the time tracking system in the YouTrack profile, credentials are verified before saving and never sent back to the browser
 - Time Tracking panel in the issue sidebar with the total tracked time and a form for new entries
-- Clock in the issue panel: start the clock of the time tracking system with one click, see the elapsed time and stop it again, also from the weekly timesheet, optionally rounded to blocks of 5, 10, 15, 30 or 60 minutes
+- Clock in the issue panel: start the clock of the time tracking system with one click, see the elapsed time and stop it again, also from the weekly timesheet, optionally rounded to blocks of 5, 10, 15, 30 or 60 minutes, with an optional reminder for clocks that are running for a long time
 - Optional comparison of the tracked time with the estimation of the issue, also without YouTrack's built-in time tracking
 - "Log Time" dialog in the issue options menu
 - Edit your own time entries from the issue panel and the weekly timesheet, as long as the editing lock of the time tracking system allows it
@@ -66,6 +66,8 @@ In helpdesk projects, the customer is also preselected from the customer groups 
 
 Clock entries can be rounded with the app settings "Clock rounding" and "Rounding mode", either globally or per project. With "15 minutes" and "Round up", every started quarter of an hour counts, so 31 minutes are logged as 45 minutes. Manually entered durations are never rounded.
 
+With the app setting "Clock reminder", users get a YouTrack notification when a clock that they started in an issue has been running for 1, 2, 4 or 8 hours. Before the notification is sent, the app checks in the time tracking system that the clock is still running. Every clock is reminded only once. Clocks that were started directly in the time tracking system are not reminded.
+
 To compare the tracked time with an estimation, enter the name of a period field, for example "Estimation", in the app setting "Estimation field". The issue panel then shows the estimation and how much of it has been used, and the project report shows the estimation per issue. The field works independently of YouTrack's built-in time tracking. Periods are converted with 8 hours per day and 5 days per week.
 
 The issue panel and the project report show the time entries that were logged via the app. Changes made directly in the time tracking system are synchronized when the person who logged the entry opens the issue, at most every 10 minutes. Customers, projects, services, absences and public holidays are cached per user for 10 minutes, so new entries in these lists appear in the form after at most 10 minutes.
@@ -83,6 +85,7 @@ All settings are optional and can be set globally or per project. MCP tools alwa
 | Estimation field | Name of a period field with the estimation, for example "Estimation". |
 | Clock rounding | Rounds stopped clock entries to blocks of 5, 10, 15, 30 or 60 minutes. "Off" by default. |
 | Rounding mode | "Round up" counts every started block, "Round to nearest" rounds to the closest block. At least one block is always logged. |
+| Clock reminder | Notifies users when a clock started in an issue has been running for 1, 2, 4 or 8 hours. "Off" by default. |
 
 ## MCP Tools
 
