@@ -66,7 +66,7 @@ In helpdesk projects, the customer is also preselected from the customer groups 
 
 Clock entries can be rounded with the app settings "Clock rounding" and "Rounding mode", either globally or per project. With "15 minutes" and "Round up", every started quarter of an hour counts, so 31 minutes are logged as 45 minutes. Manually entered durations are never rounded.
 
-With the app setting "Clock reminder", users get a YouTrack notification when a clock that they started in an issue has been running for 1, 2, 4 or 8 hours. Before the notification is sent, the app checks in the time tracking system that the clock is still running. Every clock is reminded only once. Clocks that were started directly in the time tracking system are not reminded.
+With the app setting "Clock reminder", users get an e-mail notification from YouTrack when a clock that they started in an issue has been running for 1, 2, 4 or 8 hours. The notification is sent to the e-mail address in the YouTrack profile, so YouTrack needs a configured mail server. Before the notification is sent, the app checks in the time tracking system that the clock is still running. Every clock is reminded only once. Clocks that were started directly in the time tracking system are not reminded.
 
 To compare the tracked time with an estimation, enter the name of a period field, for example "Estimation", in the app setting "Estimation field". The issue panel then shows the estimation and how much of it has been used, and the project report shows the estimation per issue. The field works independently of YouTrack's built-in time tracking. Periods are converted with 8 hours per day and 5 days per week.
 
@@ -85,7 +85,7 @@ All settings are optional and can be set globally or per project. MCP tools alwa
 | Estimation field | Name of a period field with the estimation, for example "Estimation". |
 | Clock rounding | Rounds stopped clock entries to blocks of 5, 10, 15, 30 or 60 minutes. "Off" by default. |
 | Rounding mode | "Round up" counts every started block, "Round to nearest" rounds to the closest block. At least one block is always logged. |
-| Clock reminder | Notifies users when a clock started in an issue has been running for 1, 2, 4 or 8 hours. "Off" by default. |
+| Clock reminder | Sends an e-mail notification to users when a clock started in an issue has been running for 1, 2, 4 or 8 hours. "Off" by default. |
 
 ## MCP Tools
 
