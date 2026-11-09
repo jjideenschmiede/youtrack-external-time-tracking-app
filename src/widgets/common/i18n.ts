@@ -48,7 +48,7 @@ const en = {
   logIn: 'Log in {provider}',
   logTime: 'Log Time',
   editTime: 'Edit Time',
-  startClock: 'Start Clock',
+  startClock: 'Start clock',
   stopClock: 'Stop clock',
   startClockSubmit: 'Start',
   clockStarted: 'Clock started.',
