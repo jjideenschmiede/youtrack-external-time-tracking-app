@@ -4,7 +4,7 @@ const logTime = require('./tool-log-time');
 
 exports.aiTool = {
   name: 'start_clock',
-  description: 'Starts the clock (stopwatch) of the connected time tracking system (e.g. clocko:do) for a YouTrack issue. ' +
+  description: 'Starts the clock (stopwatch) of the connected time tracking system (e.g. Clockodo) for a YouTrack issue. ' +
     'A clock that is already running is stopped. Customer, project and service default to the last selection of the user in the ' +
     'issue project. The request runs in the background: call ' + assistant.JOB_RESULT_TOOL + ' with the returned jobId to confirm it.',
   inputSchema: {

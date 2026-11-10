@@ -3,7 +3,7 @@ const jobs = require('./jobs');
 
 exports.aiTool = {
   name: 'my_entries',
-  description: 'Loads your own time entries from the connected time tracking system (e.g. clocko:do) for a date range of at most 62 days. ' +
+  description: 'Loads your own time entries from the connected time tracking system (e.g. Clockodo) for a date range of at most 62 days. ' +
     'The request runs in the background: the tool returns a jobId, then call ' + assistant.JOB_RESULT_TOOL + ' to get the entries.',
   inputSchema: {
     type: 'object',

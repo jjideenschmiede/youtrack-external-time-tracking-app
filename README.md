@@ -1,6 +1,6 @@
 # YouTrack External Time Tracking App
 
-A YouTrack app that connects YouTrack with external time tracking systems such as clocko:do: log time directly in issues, see tracked time per issue, open your weekly timesheet and get time reports per project.
+A YouTrack app that connects YouTrack with external time tracking systems such as Clockodo: log time directly in issues, see tracked time per issue, open your weekly timesheet and get time reports per project.
 
 ---
 
@@ -25,7 +25,7 @@ We are **YouTrack Certified** and **TeamCity Certified** developers, specializin
 
 ## Features
 
-The App lets every user connect their own account of an external time tracking system and log time without leaving YouTrack. Entries are created directly in the time tracking system, so it stays the single source of truth. Currently clocko:do is supported.
+The App lets every user connect their own account of an external time tracking system and log time without leaving YouTrack. Entries are created directly in the time tracking system, so it stays the single source of truth. Currently Clockodo is supported.
 
 - Personal connection to the time tracking system in the YouTrack profile, credentials are verified before saving and never sent back to the browser
 - Time Tracking panel in the issue sidebar with the total tracked time and a form for new entries
@@ -43,7 +43,7 @@ The App lets every user connect their own account of an external time tracking s
 ## Requirements
 
 - YouTrack 2026.2 or later
-- An account in a supported time tracking system (clocko:do) with API access
+- An account in a supported time tracking system (Clockodo) with API access
 
 ## Installation
 
@@ -56,7 +56,7 @@ The App lets every user connect their own account of an external time tracking s
 
 ## Configuration
 
-Each user connects their own account in the YouTrack profile under "Time Tracking". For clocko:do, this requires the e-mail address and the API key of the user.
+Each user connects their own account in the YouTrack profile under "Time Tracking". For Clockodo, this requires the e-mail address and the API key of the user.
 
 The Time Tracking panel and the "Log Time" dialog in issues are only visible to users who can add work items (`Create Work Items`), so reporters in helpdesk projects don't see who logged how much time. The Time Tracking tab in projects is only visible to users with the permission to update work items of other users (`Update Not Own Work Items`). Project and system administrators have it by default; grant it to other roles, for example a manager role, to give them access to the report.
 

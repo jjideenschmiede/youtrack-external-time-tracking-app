@@ -33,7 +33,7 @@ function summarize(entries, groupBy) {
 exports.aiTool = {
   name: 'project_report',
   description: 'Returns the time logged via the External Time Tracking app for the issues of a YouTrack project in a date range, ' +
-    'grouped by issue, user, customer, project or service of the time tracking system (e.g. clocko:do). ' +
+    'grouped by issue, user, customer, project or service of the time tracking system (e.g. Clockodo). ' +
     'Requires the permission to update work items of other users in the project.',
   inputSchema: {
     type: 'object',

@@ -25,7 +25,7 @@ function readStart(value, seconds) {
 
 exports.aiTool = {
   name: 'log_time',
-  description: 'Logs time on a YouTrack issue in the connected time tracking system (e.g. clocko:do) and adds the entry to the issue. ' +
+  description: 'Logs time on a YouTrack issue in the connected time tracking system (e.g. Clockodo) and adds the entry to the issue. ' +
     'Customer, project and service default to the last selection of the user in the issue project; pass names to choose others. ' +
     'Only log time the user explicitly asked for. The request runs in the background: call ' + assistant.JOB_RESULT_TOOL +
     ' with the returned jobId to confirm it.',
