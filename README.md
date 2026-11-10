@@ -68,7 +68,7 @@ Clock entries can be rounded with the app settings "Clock rounding" and "Roundin
 
 With the app setting "Clock reminder", users get an e-mail notification from YouTrack when a clock that they started in an issue has been running for 1, 2, 4 or 8 hours. The notification is sent to the e-mail address in the YouTrack profile, so YouTrack needs a configured mail server. Before the notification is sent, the app checks in the time tracking system that the clock is still running. Every clock is reminded only once. Clocks that were started directly in the time tracking system are not reminded.
 
-The issue panel shows how much of the estimation of an issue has been used, and the project report shows the estimation per issue. The app finds the estimation field automatically: it uses the estimation field from the time tracking settings of the project, otherwise a period field named "Estimation", otherwise the only period field of the project apart from "Spent time". So the estimation also works without YouTrack's built-in time tracking. To use another period field, enter its name in the app setting "Estimation field". Periods are converted with 8 hours per day and 5 days per week.
+The issue panel shows how much of the estimation of an issue has been used, and the project report shows the estimation per issue. The app finds the estimation field automatically: it uses the estimation field from the time tracking settings of the project, otherwise a period field named "Estimation", otherwise the only period field of the project apart from "Spent time". So the estimation also works without YouTrack's built-in time tracking. Only if no field is found, for example because the project has several period fields and none is named "Estimation", enter the name of the field in the app setting "Estimation field" as an exception. Periods are converted with 8 hours per day and 5 days per week.
 
 The issue panel and the project report show the time entries that were logged via the app. Changes made directly in the time tracking system are synchronized when the person who logged the entry opens the issue, at most every 10 minutes. Customers, projects, services, absences and public holidays are cached per user for 10 minutes, so new entries in these lists appear in the form after at most 10 minutes.
 
@@ -82,7 +82,7 @@ All settings are optional and can be set globally or per project. MCP tools alwa
 | Setting | Description |
 | --- | --- |
 | Customer field, Project field, Service field | Names of YouTrack fields whose values match customers, projects or services of the time tracking system. The matching entry is preselected in the form. |
-| Estimation field | Name of a period field with the estimation, for example "Estimation". Only needed if the automatically detected estimation field is not the right one. |
+| Estimation field | Leave empty. Exception for projects where the estimation field is not detected automatically: name of the period field with the estimation. |
 | Clock rounding | Rounds stopped clock entries to blocks of 5, 10, 15, 30 or 60 minutes. "Off" by default. |
 | Rounding mode | "Round up" counts every started block, "Round to nearest" rounds to the closest block. At least one block is always logged. |
 | Clock reminder | Sends an e-mail notification to users when a clock started in an issue has been running for 1, 2, 4 or 8 hours. "Off" by default. |

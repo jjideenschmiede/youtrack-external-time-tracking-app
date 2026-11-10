@@ -22,7 +22,7 @@
     "estimationField": {
       "type": "string",
       "title": "Estimation field",
-      "description": "Usually not needed: the app uses the estimation field from the time tracking settings of the project, otherwise a period field named \"Estimation\" or the only period field of the project. Enter the name of a period field to override this."
+      "description": "Leave empty. The app detects the estimation field automatically. Only enter the name of a period field if the estimation is not found, for example if the project has several period fields and none is named \"Estimation\"."
     },
     "clockRounding": {
       "type": "string",
