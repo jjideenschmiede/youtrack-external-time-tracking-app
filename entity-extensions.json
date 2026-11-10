@@ -20,6 +20,9 @@
         },
         "timeTrackingClock": {
           "type": "string"
+        },
+        "timeTrackingClockReminder": {
+          "type": "boolean"
         }
       }
     },
@@ -35,6 +38,9 @@
       "entityType": "Project",
       "properties": {
         "timeTrackingIssues": {
+          "type": "string"
+        },
+        "timeTrackingEstimateField": {
           "type": "string"
         }
       }

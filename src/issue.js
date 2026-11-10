@@ -1,6 +1,11 @@
 const common = require('./common');
 const jobs = require('./jobs');
 
+function issueSummary(ctx, lang) {
+  const summary = common.issueSummary(ctx.currentUser, lang, common.readIssueEntries(ctx.issue), common.issueEstimate(ctx.issue, ctx.settings));
+  return Object.assign(summary, {estimationField: common.projectEstimationField(ctx.issue.project)});
+}
+
 exports.httpHandler = {
   endpoints: [
     {
@@ -9,7 +14,20 @@ exports.httpHandler = {
       method: 'GET',
       path: 'summary',
       handle: (ctx) => {
-        common.respond(ctx, (lang) => common.issueSummary(ctx.currentUser, lang, common.readIssueEntries(ctx.issue), common.issueEstimate(ctx.issue, ctx.settings)));
+        common.respond(ctx, (lang) => issueSummary(ctx, lang));
+      }
+    },
+    {
+      scope: 'issue',
+      permissions: ['CREATE_WORK_ITEM'],
+      method: 'POST',
+      path: 'estimation-field',
+      handle: (ctx) => {
+        common.respond(ctx, (lang) => {
+          const body = common.requestBody(ctx);
+          common.saveProjectEstimationField(ctx.issue.project, body && body.name);
+          return issueSummary(ctx, lang);
+        });
       }
     },
     {

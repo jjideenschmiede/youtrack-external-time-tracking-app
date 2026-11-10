@@ -98,6 +98,8 @@ export function createApi(host: HostAPI) {
     stopIssueClock: () => job<IssueSummary>(host, 'issue/clock/stop', {scope: true}),
 
     getIssueSummary: () => request<IssueSummary>(host, 'issue/summary', {scope: true}),
+    setEstimationField: (name: string | null) =>
+      request<IssueSummary>(host, 'issue/estimation-field', {method: 'POST', body: {name}, scope: true}),
     refreshIssue: () => job<{changed: boolean}>(host, 'issue/refresh', {scope: true}),
     createIssueEntry: (input: EntryInput) =>
       job<IssueSummary>(host, 'issue/entries', {body: input, scope: true}),

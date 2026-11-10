@@ -157,8 +157,10 @@ body {
   background-color: transparent;
 }
 
-:root {
-  --ett-hover-accent-color: #e864ba;
+:root:root,
+:root .ring-ui-theme-dark {
+  --ring-link-hover-color: light-dark(#ff008c, #d671b3);
+  --ett-hover-accent-color: var(--ring-link-hover-color);
 }
 
 .ett-modal-backdrop {

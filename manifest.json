@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/youtrack-app.json",
   "name": "external-time-tracking",
   "title": "External Time Tracking",
-  "description": "Connects YouTrack with external time tracking systems such as clocko:do: log time directly in issues, see tracked time per issue, open your weekly timesheet and get time reports per project.",
-  "version": "1.7.0",
+  "description": "Connects YouTrack with external time tracking systems such as Clockodo: log time or start the clock directly in issues, see tracked time per issue, open your weekly timesheet, get time reports per project and use it from AI assistants via MCP tools.",
+  "version": "1.8.0",
   "vendor": {
     "name": "J&J Ideenschmiede GmbH",
     "url": "https://jj-ideenschmiede.de",
@@ -11,6 +11,7 @@
   },
   "icon": "icon.svg",
   "minYouTrackVersion": "2026.2.0",
+  "aiToolPrefix": "time_tracking",
   "widgets": [
     {
       "key": "timesheet",

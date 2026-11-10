@@ -17,7 +17,7 @@ body:
     attributes:
       label: What happened?
       description: Describe the problem as detailed as possible.
-      placeholder: When I log time in the issue sidebar, the entry is not created in clocko:do and …
+      placeholder: When I log time in the issue sidebar, the entry is not created in Clockodo and …
     validations:
       required: true
   - type: textarea
@@ -68,7 +68,7 @@ body:
     attributes:
       label: Time tracking system
       options:
-        - clocko:do
+        - Clockodo
     validations:
       required: true
   - type: dropdown

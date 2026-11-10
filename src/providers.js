@@ -1,7 +1,7 @@
 const http = require('@jetbrains/youtrack-scripting-api/http');
 const i18n = require('./i18n');
 
-const CLOCKODO = 'clocko:do';
+const CLOCKODO = 'Clockodo';
 const BASE_URL = 'https://my.clockodo.com/api';
 
 function toClockodoTime(iso) {
@@ -145,8 +145,8 @@ const clockodo = {
   id: 'clockodo',
   name: CLOCKODO,
   description: {
-    de: 'Zeiterfassung mit clocko:do (my.clockodo.com).',
-    en: 'Time tracking with clocko:do (my.clockodo.com).'
+    de: 'Zeiterfassung mit Clockodo (my.clockodo.com).',
+    en: 'Time tracking with Clockodo (my.clockodo.com).'
   },
   credentialFields: [
     {
@@ -162,8 +162,8 @@ const clockodo = {
     }
   ],
   credentialHelp: {
-    de: 'Den persönlichen API-Schlüssel findest du in clocko:do in deinen persönlichen Einstellungen.',
-    en: 'You can find your personal API key in clocko:do in your personal settings.'
+    de: 'Den persönlichen API-Schlüssel findest du in Clockodo in deinen persönlichen Einstellungen.',
+    en: 'You can find your personal API key in Clockodo in your personal settings.'
   },
   credentialHelpUrl: null,
   entryFields: [
@@ -173,7 +173,7 @@ const clockodo = {
   ],
   supportsBillable: true,
   links: [
-    {label: {de: 'clocko:do öffnen', en: 'Open clocko:do'}, url: 'https://my.clockodo.com/'}
+    {label: {de: 'Clockodo öffnen', en: 'Open Clockodo'}, url: 'https://my.clockodo.com/'}
   ],
 
   connection: clockodoConnection,

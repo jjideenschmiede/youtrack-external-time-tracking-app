@@ -22,7 +22,7 @@
     "estimationField": {
       "type": "string",
       "title": "Estimation field",
-      "description": "Name of a period field that holds the estimation, e.g. \"Estimation\". The issue panel then shows the tracked time against it. Works without YouTrack time tracking."
+      "description": "Leave empty. The app detects the estimation field automatically. Only enter the name of a period field if the estimation is not found, for example if the project has several period fields and none is named \"Estimation\"."
     },
     "clockRounding": {
       "type": "string",
@@ -47,6 +47,19 @@
         "Round to nearest"
       ],
       "default": "Round up"
+    },
+    "clockReminder": {
+      "type": "string",
+      "title": "Clock reminder",
+      "description": "Sends a YouTrack notification to the user when a clock started in an issue has been running for the selected time.",
+      "enum": [
+        "Off",
+        "1 hour",
+        "2 hours",
+        "4 hours",
+        "8 hours"
+      ],
+      "default": "Off"
     }
   }
 }

@@ -7,6 +7,12 @@ const MESSAGES = {
     invalidBody: 'Ungültiger Request-Body.',
     entryNotEditable: 'Dieser Eintrag kann hier nicht bearbeitet werden.',
     clockNotRunning: 'Es läuft keine Stoppuhr.',
+    clockReminderSubject: 'Stoppuhr läuft noch auf {issue} ({duration})',
+    clockReminderBody: 'Deine Stoppuhr auf <a href="{url}">{issue} {summary}</a> läuft seit {duration}.<br><br>Falls du vergessen hast, sie zu stoppen, öffne das Ticket und stoppe die Stoppuhr im Time-Tracking-Panel.',
+    issueNotFound: 'Das Ticket „{issue}“ wurde nicht gefunden.',
+    optionNotFound: '{field} „{value}“ wurde in {provider} nicht gefunden.',
+    permissionDenied: 'Dafür fehlt dir die Berechtigung.',
+    durationInvalid: 'Die Dauer „{value}“ ist ungültig. Beispiele: 1h 30m, 1.5h, 90m.',
     jobNotFound: 'Die Anfrage ist abgelaufen. Bitte versuche es erneut.',
     guestNotAllowed: 'Gäste können kein Zeiterfassungskonto verbinden. Bitte melde dich an.',
     notConnected: 'Kein Zeiterfassungskonto verbunden. Bitte zuerst im Profil unter „Time Tracking“ verbinden.',
@@ -35,6 +41,12 @@ const MESSAGES = {
     invalidBody: 'Invalid request body.',
     entryNotEditable: 'This entry cannot be edited here.',
     clockNotRunning: 'No clock is running.',
+    clockReminderSubject: 'Clock still running on {issue} ({duration})',
+    clockReminderBody: 'Your clock on <a href="{url}">{issue} {summary}</a> has been running for {duration}.<br><br>If you forgot to stop it, open the issue and stop the clock in the Time Tracking panel.',
+    issueNotFound: 'The issue “{issue}” was not found.',
+    optionNotFound: '{field} “{value}” was not found in {provider}.',
+    permissionDenied: 'You do not have the permission to do this.',
+    durationInvalid: 'The duration “{value}” is invalid. Examples: 1h 30m, 1.5h, 90m.',
     jobNotFound: 'The request has expired. Please try again.',
     guestNotAllowed: 'Guests cannot connect a time tracking account. Please log in.',
     notConnected: 'No time tracking account connected. Connect one in your profile under “Time Tracking” first.',
@@ -69,6 +81,10 @@ function normalize(value) {
     return 'en';
   }
   return null;
+}
+
+function userLanguage(user) {
+  return normalize(user && user.language) || DEFAULT_LANGUAGE;
 }
 
 function language(ctx) {
@@ -120,6 +136,7 @@ function errorMessage(lang, error) {
 }
 
 exports.language = language;
+exports.userLanguage = userLanguage;
 exports.pick = pick;
 exports.translate = translate;
 exports.fail = fail;

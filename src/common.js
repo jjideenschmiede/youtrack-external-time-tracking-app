@@ -195,6 +195,17 @@ function readFieldValue(issue, user, fieldName) {
   return null;
 }
 
+function firstCustomerGroup(issue) {
+  try {
+    const groups = issue && issue.customerGroups;
+    const first = groups && !groups.isEmpty() ? groups.first() : null;
+    return first && first.name ? String(first.name).trim() || null : null;
+  } catch (e) {
+    console.warn('external-time-tracking: cannot read customer groups: ' + e.message);
+    return null;
+  }
+}
+
 function clearDependents(fields, refs, mapped, parentKey) {
   fields.forEach((child) => {
     if (child.dependsOn === parentKey && !mapped[child.key]) {
@@ -302,6 +313,8 @@ function readDateRange(fromDate, toDate) {
   return {fromDate: fromDate, toDate: toDate};
 }
 
+const DEFAULT_ESTIMATION_FIELD = 'Estimation';
+const SPENT_TIME_FIELD = 'Spent time';
 const MINUTES_PER_DAY = 8 * 60;
 const DAYS_PER_WEEK = 5;
 
@@ -309,8 +322,41 @@ function periodPart(period, method) {
   return typeof period[method] === 'function' ? Number(period[method]()) || 0 : 0;
 }
 
+function projectEstimationField(project) {
+  try {
+    return project && project.isTimeTrackingEnabled ? project.extensionProperties.timeTrackingEstimateField || null : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveProjectEstimationField(project, name) {
+  const value = typeof name === 'string' && name.trim() && project.findFieldByName(name.trim()) ? name.trim() : null;
+  if ((project.extensionProperties.timeTrackingEstimateField || null) !== value) {
+    project.extensionProperties.timeTrackingEstimateField = value;
+  }
+}
+
+function defaultEstimationField(project) {
+  const periods = [];
+  try {
+    project.fields.forEach((field) => {
+      if (field.typeName === 'period' && field.name !== SPENT_TIME_FIELD) {
+        periods.push(field.name);
+      }
+    });
+  } catch {
+    return null;
+  }
+  if (periods.indexOf(DEFAULT_ESTIMATION_FIELD) !== -1) {
+    return DEFAULT_ESTIMATION_FIELD;
+  }
+  return periods.length === 1 ? periods[0] : null;
+}
+
 function issueEstimate(issue, settings) {
-  const fieldName = settings && typeof settings.estimationField === 'string' ? settings.estimationField.trim() : '';
+  const configured = settings && typeof settings.estimationField === 'string' ? settings.estimationField.trim() : '';
+  const fieldName = configured || (issue ? projectEstimationField(issue.project) || defaultEstimationField(issue.project) : null);
   if (!issue || !fieldName) {
     return null;
   }
@@ -336,6 +382,10 @@ function writeClock(user, clock) {
   const next = clock ? JSON.stringify(clock) : null;
   if (user.extensionProperties.timeTrackingClock !== next) {
     user.extensionProperties.timeTrackingClock = next;
+  }
+  const remind = !!(clock && clock.issueId && !clock.reminded);
+  if (!!user.extensionProperties.timeTrackingClockReminder !== remind) {
+    user.extensionProperties.timeTrackingClockReminder = remind;
   }
 }
 
@@ -455,6 +505,7 @@ exports.disconnect = disconnect;
 exports.ISSUE_ID_PATTERN = ISSUE_ID_PATTERN;
 exports.entryForm = entryForm;
 exports.readFieldValue = readFieldValue;
+exports.firstCustomerGroup = firstCustomerGroup;
 exports.clearDependents = clearDependents;
 exports.validateInput = validateInput;
 exports.labelRefs = labelRefs;
@@ -468,6 +519,8 @@ exports.readClock = readClock;
 exports.writeClock = writeClock;
 exports.publicClock = publicClock;
 exports.issueEstimate = issueEstimate;
+exports.projectEstimationField = projectEstimationField;
+exports.saveProjectEstimationField = saveProjectEstimationField;
 exports.readCache = readCache;
 exports.writeCache = writeCache;
 exports.readIssueEntries = readIssueEntries;

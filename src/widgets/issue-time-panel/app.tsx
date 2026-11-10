@@ -131,7 +131,10 @@ const AppComponent: React.FunctionComponent = () => {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [nextSummary, nextIssue] = await Promise.all([api.getIssueSummary(), loadIssueContext(host)]);
+      const [loadedSummary, nextIssue] = await Promise.all([api.getIssueSummary(), loadIssueContext(host)]);
+      const nextSummary = (loadedSummary.estimationField ?? null) === nextIssue.estimationField
+        ? loadedSummary
+        : await api.setEstimationField(nextIssue.estimationField).catch(() => loadedSummary);
       setSummary(nextSummary);
       setIssue(nextIssue);
       if (needsRefresh(nextSummary) && await claimRefresh(nextIssue.id)) {
@@ -352,12 +355,6 @@ const AppComponent: React.FunctionComponent = () => {
       <div className="panel-fields">
         <span className="ett-label">{t('total')}</span>
         <span className="ett-duration">{summary.totalSeconds > 0 ? formatDuration(summary.totalSeconds) : '—'}</span>
-        {!!summary.estimateSeconds && (
-          <>
-            <span className="ett-label">{t('estimate')}</span>
-            <span className="ett-duration">{formatDuration(summary.estimateSeconds)}</span>
-          </>
-        )}
       </div>
 
       {!!summary.estimateSeconds && (
