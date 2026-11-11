@@ -1,0 +1,60 @@
+release:
+  stage: release
+  image: node:22
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm
+    policy: pull
+  variables:
+    GIT_DEPTH: 0
+    NODE_OPTIONS: --max_old_space_size=4096
+    PACKAGE_NAME: youtrack-external-time-tracking-app
+  script:
+    - |
+      VERSION="${CI_COMMIT_TAG#v}"
+      MANIFEST=$(node -p "require('./manifest.json').version")
+      if [ "$VERSION" != "$MANIFEST" ]; then
+        echo "Tag $CI_COMMIT_TAG does not match manifest version $MANIFEST"
+        exit 1
+      fi
+    - npm ci --cache .npm --prefer-offline
+    - npm test
+    - npm run build
+    - sh .gitlab/ci/release-notes.sh > release-notes.md
+    - cat release-notes.md
+    - node .gitlab/ci/change-notes.mjs release-notes.md dist/manifest.json
+    - npm run pack
+    - unzip -Z1 "$PACKAGE_NAME.zip" | grep -Fxq 'manifest.json'
+    - |
+      PACKAGE_URL="$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/$PACKAGE_NAME/$VERSION/$PACKAGE_NAME.zip"
+      curl --fail-with-body --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$PACKAGE_NAME.zip" "$PACKAGE_URL"
+      PACKAGE_URL="$PACKAGE_URL" node -e "
+        const fs = require('fs');
+        process.stdout.write(JSON.stringify({
+          name: process.env.CI_COMMIT_TAG,
+          tag_name: process.env.CI_COMMIT_TAG,
+          description: fs.readFileSync('release-notes.md', 'utf8'),
+          assets: {links: [{name: process.env.PACKAGE_NAME + '.zip', url: process.env.PACKAGE_URL, link_type: 'package'}]}
+        }));
+      " > release.json
+      RELEASE_URL="$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases"
+      if curl --silent --fail --output /dev/null --header "JOB-TOKEN: $CI_JOB_TOKEN" "$RELEASE_URL/$CI_COMMIT_TAG"; then
+        PACKAGE_URL="$PACKAGE_URL" node -e "
+          process.stdout.write(JSON.stringify({name: process.env.PACKAGE_NAME + '.zip', url: process.env.PACKAGE_URL, link_type: 'package'}));
+        " > link.json
+        curl --fail-with-body --request POST --header "JOB-TOKEN: $CI_JOB_TOKEN" --header "Content-Type: application/json" \
+          --data @link.json "$RELEASE_URL/$CI_COMMIT_TAG/assets/links"
+      else
+        curl --fail-with-body --request POST --header "JOB-TOKEN: $CI_JOB_TOKEN" --header "Content-Type: application/json" \
+          --data @release.json "$RELEASE_URL"
+      fi
+  artifacts:
+    expire_in: 30 days
+    paths:
+      - youtrack-external-time-tracking-app.zip
+      - release-notes.md
