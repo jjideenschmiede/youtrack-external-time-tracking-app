@@ -7,6 +7,7 @@ const MAX_ISSUE_REFS = 200;
 const CACHE_FRESH = 10 * 60 * 1000;
 const CACHE_MAX_AGE = 24 * 3600 * 1000;
 const CACHE_MAX_KEYS = 80;
+const MAX_LABEL_LENGTH = 200;
 
 function parseJson(value, fallback) {
   if (!value) {
@@ -266,7 +267,7 @@ function labelRefs(input, labels) {
   const refs = {};
   Object.keys(input.refs).forEach((key) => {
     refs[key] = input.refs[key]
-      ? {id: input.refs[key], name: labels && labels[key] ? String(labels[key]) : input.refs[key]}
+      ? {id: input.refs[key], name: labels && labels[key] ? String(labels[key]).slice(0, MAX_LABEL_LENGTH) : input.refs[key]}
       : null;
   });
   return refs;
