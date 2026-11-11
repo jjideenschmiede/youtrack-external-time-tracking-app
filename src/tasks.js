@@ -581,13 +581,17 @@ exports.clockStop = {
     job.provider = session.provider.id;
     const stored = common.readClock(env.user);
     const id = job.params.id ? String(job.params.id) : stored && stored.id;
-    if (!id) {
-      i18n.fail('clockNotRunning');
-    }
-    return send(session.provider.stopClockRequest(id));
+    return send(id ? session.provider.stopClockRequest(id) : session.provider.clockRequest());
   },
   next: (job, env, request, body) => {
     const provider = providers.find(job.provider);
+    if (request.method === 'GET') {
+      const running = provider.parseClock(body).running;
+      if (!running) {
+        i18n.fail('clockNotRunning');
+      }
+      return send(provider.stopClockRequest(running.id));
+    }
     const stored = common.readClock(env.user);
     const stopped = stoppedEntry(provider, request, body);
     if (request.method !== 'PUT') {
@@ -602,7 +606,7 @@ exports.clockStop = {
     } else if (request.method !== 'PUT' && !provider.parseClock(body).running) {
       common.writeClock(env.user, null);
     }
-    return done(clockResult(env, job.lang));
+    return done(Object.assign(clockResult(env, job.lang), {stopped: stopped || null}));
   }
 };
 
@@ -694,5 +698,81 @@ exports.assisted = {
   next: (job, env, request, items) => {
     acceptRef(job, providers.find(job.provider).matchOption(items, job.state.queue[0].value));
     return advanceRefs(job, env);
+  }
+};
+
+const OPTION_LIMIT = 200;
+
+function optionField(job) {
+  return providers.find(job.provider).entryFields.find((field) => field.key === job.state.field);
+}
+
+function namedOptions(job, options) {
+  const search = job.state.search;
+  const names = options
+    .map((option) => String(option.label))
+    .filter((name) => !search || name.toLowerCase().indexOf(search) !== -1);
+  return done({field: job.state.field, names: names.slice(0, OPTION_LIMIT), count: names.length});
+}
+
+function listOptions(job, env, parentId) {
+  const field = optionField(job);
+  const refs = {};
+  if (field.dependsOn) {
+    refs[field.dependsOn] = parentId;
+  }
+  const cached = common.readCache(env.user, optionsKey(field.key, refs));
+  if (cached && cached.fresh) {
+    return namedOptions(job, cached.data.options);
+  }
+  const request = providers.find(job.provider).optionsRequest(field.key, refs);
+  return request ? send(request) : namedOptions(job, []);
+}
+
+exports.optionNames = {
+  start: (job, env) => {
+    const session = common.openSession(env.user, job.lang);
+    job.provider = session.provider.id;
+    job.state = {
+      field: String(job.params.field || ''),
+      search: String(job.params.search || '').trim().toLowerCase(),
+      parent: null
+    };
+    const field = optionField(job);
+    if (!field) {
+      i18n.fail('unknownField', {field: job.state.field});
+    }
+    const parent = field.dependsOn ? String((job.params.names || {})[field.dependsOn] || '').trim() : '';
+    job.params = {};
+    if (!field.dependsOn) {
+      return listOptions(job, env, null);
+    }
+    const parentField = session.provider.entryFields.find((item) => item.key === field.dependsOn);
+    if (!parent) {
+      i18n.fail('fieldRequired', {field: parentField.label});
+    }
+    const known = cachedMatch(env.user, parentField.key, {}, parent);
+    if (known) {
+      return listOptions(job, env, known.id);
+    }
+    const request = session.provider.findRequest(parentField.key, {}, parent);
+    if (!request) {
+      i18n.fail('fieldRequired', {field: parentField.label});
+    }
+    job.state.parent = {label: parentField.label, value: parent};
+    return send(request);
+  },
+  next: (job, env, request, items) => {
+    const provider = providers.find(job.provider);
+    const parent = job.state.parent;
+    if (!parent) {
+      return namedOptions(job, provider.parseOptions(job.lang, items));
+    }
+    const match = provider.matchOption(items, parent.value);
+    if (!match) {
+      i18n.fail('optionNotFound', {field: parent.label, value: parent.value, provider: provider.name});
+    }
+    job.state.parent = null;
+    return listOptions(job, env, match.id);
   }
 };

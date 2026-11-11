@@ -99,6 +99,8 @@ The app provides tools for AI assistants that are connected to YouTrack via the 
 | `time_tracking_log_time` | Logs time on an issue, for example "log 1h 30m on DEMO-3 for the review". |
 | `time_tracking_start_clock` | Starts the clock for an issue. |
 | `time_tracking_stop_clock` | Stops the running clock and adds the entry to its issue. |
+| `time_tracking_clock_status` | Tells whether the clock is running, since when and for which issue. |
+| `time_tracking_list_options` | Lists the names of the customers, projects or services, so that the assistant finds the exact name for an entry. |
 | `time_tracking_job_result` | Returns the result of the tools above that call the time tracking system. |
 
 Every tool runs with the permissions of the connected user, who needs `Create Work Items` for the issue tools and a connected account for the tools that call the time tracking system. These tools answer with a job ID right away, and the assistant gets the result with `time_tracking_job_result`. Customer, project and service default to the last selection of the user in the issue project; the assistant can pass other names.
