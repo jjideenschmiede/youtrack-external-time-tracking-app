@@ -76,8 +76,9 @@ function stripIssueId(text, issueId) {
 function collect(project, user, range, settings) {
   const entries = [];
   let missingRefs = false;
+  const estimationField = common.estimationField(project, settings);
   projectIssues(project, user).forEach((issue) => {
-    const ref = {id: issue.id, summary: issue.summary, url: issue.url, estimateSeconds: common.issueEstimate(issue, settings)};
+    const ref = {id: issue.id, summary: issue.summary, url: issue.url, estimateSeconds: common.fieldEstimate(issue, user, estimationField)};
     common.readIssueEntries(issue).forEach((entry) => {
       const start = new Date(entry.start).getTime();
       if (entry.deleted || isNaN(start) || start < range.from || start >= range.to) {

@@ -279,7 +279,7 @@ exports.update = {
     const entry = provider.parseUpdate(body);
     const refs = common.labelRefs(job.state.input, job.state.labels);
     if (env.issue) {
-      return done(common.issueSummary(env.user, job.lang, patchStoredEntry(env.issue, env.user, entry, refs), common.issueEstimate(env.issue, env.settings)));
+      return done(common.issueSummary(env.user, job.lang, patchStoredEntry(env.issue, env.user, entry, refs), common.issueEstimate(env.issue, env.user, env.settings)));
     }
     const ids = {};
     ((entry.text + ' ' + job.state.previousText).match(common.ISSUE_ID_PATTERN) || []).forEach((issueId) => {
@@ -347,7 +347,7 @@ exports.create = {
     });
     common.writeIssueEntries(env.issue, entries);
     common.indexIssue(env.issue);
-    return done(common.issueSummary(env.user, job.lang, entries, common.issueEstimate(env.issue, env.settings)));
+    return done(common.issueSummary(env.user, job.lang, entries, common.issueEstimate(env.issue, env.user, env.settings)));
   }
 };
 
@@ -509,7 +509,7 @@ function attachStopped(user, provider, stopped, clock) {
 
 function clockResult(env, lang) {
   if (env.issue) {
-    return common.issueSummary(env.user, lang, common.readIssueEntries(env.issue), common.issueEstimate(env.issue, env.settings));
+    return common.issueSummary(env.user, lang, common.readIssueEntries(env.issue), common.issueEstimate(env.issue, env.user, env.settings));
   }
   return {clock: common.publicClock(env.user)};
 }

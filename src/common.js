@@ -354,14 +354,20 @@ function defaultEstimationField(project) {
   return periods.length === 1 ? periods[0] : null;
 }
 
-function issueEstimate(issue, settings) {
+function estimationField(project, settings) {
   const configured = settings && typeof settings.estimationField === 'string' ? settings.estimationField.trim() : '';
-  const fieldName = configured || (issue ? projectEstimationField(issue.project) || defaultEstimationField(issue.project) : null);
+  return configured || (project ? projectEstimationField(project) || defaultEstimationField(project) : null);
+}
+
+function fieldEstimate(issue, user, fieldName) {
   if (!issue || !fieldName) {
     return null;
   }
   let period;
   try {
+    if (!issue.fields.canBeReadBy(fieldName, user)) {
+      return null;
+    }
     period = issue.fields[fieldName];
   } catch {
     return null;
@@ -372,6 +378,10 @@ function issueEstimate(issue, settings) {
   const days = periodPart(period, 'getDays') + DAYS_PER_WEEK * periodPart(period, 'getWeeks');
   const minutes = periodPart(period, 'getMinutes') + 60 * periodPart(period, 'getHours') + MINUTES_PER_DAY * days;
   return minutes > 0 ? minutes * 60 : null;
+}
+
+function issueEstimate(issue, user, settings) {
+  return fieldEstimate(issue, user, issue ? estimationField(issue.project, settings) : null);
 }
 
 function readClock(user) {
@@ -519,6 +529,8 @@ exports.readClock = readClock;
 exports.writeClock = writeClock;
 exports.publicClock = publicClock;
 exports.issueEstimate = issueEstimate;
+exports.estimationField = estimationField;
+exports.fieldEstimate = fieldEstimate;
 exports.projectEstimationField = projectEstimationField;
 exports.saveProjectEstimationField = saveProjectEstimationField;
 exports.readCache = readCache;
