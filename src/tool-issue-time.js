@@ -25,7 +25,7 @@ exports.aiTool = {
     const args = ctx.arguments || {};
     const issue = assistant.requireIssue(ctx, args.issue, 'CREATE_WORK_ITEM');
     const summary = common.issueSummary(ctx.currentUser, assistant.language(ctx), common.readIssueEntries(issue),
-      common.issueEstimate(issue, ctx.settings));
+      common.issueEstimate(issue, ctx.currentUser, ctx.settings));
     const entries = summary.entries.filter((entry) => !entry.deleted);
     const result = {
       issue: issue.id,

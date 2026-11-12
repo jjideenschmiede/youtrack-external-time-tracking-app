@@ -49,8 +49,14 @@ function clockodoConnection(credentials, lang) {
   return connection;
 }
 
-function listRequest(path, query, itemsKey, itemsPerPage) {
-  return {method: 'GET', path: path, query: query, list: itemsKey, perPage: itemsPerPage, page: 1};
+const OPTION_KEYS = ['id', 'name'];
+const ENTRY_KEYS = [
+  'id', 'type', 'time_since', 'time_until', 'duration', 'text', 'billable',
+  'customers_id', 'customers_name', 'projects_id', 'projects_name', 'services_id', 'services_name'
+];
+
+function listRequest(path, query, itemsKey, itemsPerPage, keep) {
+  return {method: 'GET', path: path, query: query, list: itemsKey, perPage: itemsPerPage, page: 1, keep: keep};
 }
 
 function pageQuery(request) {
@@ -208,7 +214,7 @@ const clockodo = {
 
   optionsRequest: (field, refs) => {
     if (field === 'customer' || field === 'service') {
-      return listRequest(OPTION_PATHS[field], [{name: 'filter[active]', value: 'true'}], 'data', 1000);
+      return listRequest(OPTION_PATHS[field], [{name: 'filter[active]', value: 'true'}], 'data', 1000, OPTION_KEYS);
     }
     if (field === 'project') {
       if (!refs.customer) {
@@ -218,7 +224,7 @@ const clockodo = {
         {name: 'filter[customers_id]', value: String(refs.customer)},
         {name: 'filter[active]', value: 'true'},
         {name: 'filter[completed]', value: 'false'}
-      ], 'data', 1000);
+      ], 'data', 1000, OPTION_KEYS);
     }
     return i18n.fail('unknownField', {field: field});
   },
@@ -236,7 +242,7 @@ const clockodo = {
     if (field === 'project') {
       query.push({name: 'filter[customers_id]', value: String(refs.customer)});
     }
-    return listRequest(OPTION_PATHS[field], query, 'data', 100);
+    return listRequest(OPTION_PATHS[field], query, 'data', 100, OPTION_KEYS);
   },
 
   matchOption: (items, name) => {
@@ -256,7 +262,7 @@ const clockodo = {
     if (withNames) {
       query.push({name: 'enhanced_list', value: 'true'});
     }
-    return listRequest('/v2/entries', query, 'entries', 1000);
+    return listRequest('/v2/entries', query, 'entries', 1000, ENTRY_KEYS);
   },
 
   parseEntries: (items) => items

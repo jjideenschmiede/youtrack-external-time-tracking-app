@@ -123,6 +123,21 @@ function readBody(response) {
   return JSON.parse(response.response);
 }
 
+function slim(request, items) {
+  if (!request.keep) {
+    return items;
+  }
+  return items.map((item) => {
+    const kept = {};
+    request.keep.forEach((key) => {
+      if (key in item) {
+        kept[key] = item[key];
+      }
+    });
+    return kept;
+  });
+}
+
 function finish(job, result) {
   job.status = 'done';
   job.finished = Date.now();
@@ -156,7 +171,7 @@ function onProviderResponse(ctx) {
     }
     let data = body;
     if (request.list) {
-      job.buffer = job.buffer.concat(body ? body[request.list] || [] : []);
+      job.buffer = job.buffer.concat(slim(request, body ? body[request.list] || [] : []));
       const more = body ? provider.nextPage(request, body) : null;
       if (more && more.page <= MAX_PAGES) {
         dispatch(ctx, job, more, credentials, pendingCredentials);
