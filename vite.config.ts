@@ -55,6 +55,8 @@ export default defineConfig({
         // List every widget entry point here
         accountSettings: resolve(__dirname, 'src/widgets/account-settings/index.html'),
 
+        dashboardClock: resolve(__dirname, 'src/widgets/dashboard-clock/index.html'),
+
         issueTimeEntry: resolve(__dirname, 'src/widgets/issue-time-entry/index.html'),
 
         issueTimePanel: resolve(__dirname, 'src/widgets/issue-time-panel/index.html'),

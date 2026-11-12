@@ -1,0 +1,74 @@
+@import url('../common/common.css');
+
+.widget {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 0 calc(var(--ring-unit) * 2) calc(var(--ring-unit) * 2);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--ring-unit) * 2.5);
+  text-align: center;
+}
+
+.empty-face {
+  font-size: 19px;
+  font-weight: 600;
+  line-height: var(--ring-line-height);
+  white-space: nowrap;
+}
+
+.clock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ring-unit) calc(var(--ring-unit) * 1.5);
+}
+
+.clock-time {
+  font-size: var(--ring-font-size-larger);
+  font-weight: 600;
+  line-height: var(--ring-line-height);
+}
+
+.clock-main {
+  display: flex;
+  flex: 1 1 100%;
+  flex-direction: column;
+  order: 1;
+  min-width: 0;
+}
+
+.clock-text {
+  display: flex;
+  gap: var(--ring-unit);
+  min-width: 0;
+}
+
+.clock-issue {
+  flex: none;
+}
+
+.clock-stop {
+  display: inline-flex;
+  flex: none;
+  margin-right: 6px;
+  margin-left: auto;
+}
+
+.clock-stop .ring-button-button {
+  --ring-button-text-color: var(--ring-icon-secondary-color);
+}
+
+.clock-stop .ring-button-button:hover,
+.clock-stop .ring-button-button:focus-visible {
+  --ring-button-text-color: var(--ett-hover-accent-color);
+  --ring-button-hover-background-color: transparent;
+  --ring-button-background-color: transparent;
+}

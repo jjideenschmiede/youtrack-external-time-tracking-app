@@ -402,7 +402,20 @@ function writeClock(user, clock) {
 
 function publicClock(user) {
   const clock = readClock(user);
-  return clock ? {id: clock.id, start: clock.start, text: clock.text, issueId: clock.issueId || null} : null;
+  if (!clock) {
+    return null;
+  }
+  const refs = issueRefs([clock.issueId || clock.text || ''], user);
+  const found = Object.keys(refs).map((id) => refs[id]).filter(Boolean);
+  const issue = clock.issueId ? refs[clock.issueId] : found[0];
+  return {
+    id: clock.id,
+    start: clock.start,
+    text: clock.text,
+    issueId: clock.issueId || null,
+    issue: issue || null,
+    refs: clock.refs || {}
+  };
 }
 
 function issueSummary(user, lang, entries, estimateSeconds) {

@@ -117,6 +117,8 @@ export interface RunningClock {
   start: string;
   text: string;
   issueId: string | null;
+  issue?: IssueRef | null;
+  refs?: Record<string, NamedRef | null>;
 }
 
 export interface IssueSummary {
