@@ -1,0 +1,26 @@
+marketplace-publish:
+  stage: publish
+  image: node:22
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/ && $JETBRAINS_MARKETPLACE_PLUGIN_ID
+  needs:
+    - job: release
+      artifacts: true
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - |
+      if [ -z "$JETBRAINS_MARKETPLACE_TOKEN" ]; then
+        echo "Set the CI/CD variable JETBRAINS_MARKETPLACE_TOKEN first."
+        exit 1
+      fi
+      case "$CI_COMMIT_TAG" in
+        *-*) CHANNEL=eap ;;
+        *) CHANNEL= ;;
+      esac
+      curl --fail-with-body \
+        --header "Authorization: Bearer $JETBRAINS_MARKETPLACE_TOKEN" \
+        --form "pluginId=$JETBRAINS_MARKETPLACE_PLUGIN_ID" \
+        --form "channel=$CHANNEL" \
+        --form "file=@youtrack-external-time-tracking-app.zip" \
+        https://plugins.jetbrains.com/api/updates/upload
