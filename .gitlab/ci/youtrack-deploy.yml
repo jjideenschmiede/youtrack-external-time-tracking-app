@@ -1,0 +1,25 @@
+youtrack-deploy:
+  stage: deploy
+  image: node:22
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - job: npm-validate
+      artifacts: true
+  environment:
+    name: production
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm
+    policy: pull
+  script:
+    - |
+      if [ -z "$YOUTRACK_HOST" ] || [ -z "$YOUTRACK_API_TOKEN" ]; then
+        echo "Set the CI/CD variables YOUTRACK_HOST and YOUTRACK_API_TOKEN first."
+        exit 1
+      fi
+    - npm ci --cache .npm --prefer-offline
+    - npm run upload

@@ -1,7 +1,13 @@
 stages:
   - validate
   - quality
+  - deploy
+  - release
+  - publish
 
 include:
   - local: .gitlab/ci/npm-validate.yml
   - local: .gitlab/ci/qodana-code-quality.yml
+  - local: .gitlab/ci/youtrack-deploy.yml
+  - local: .gitlab/ci/release.yml
+  - local: .gitlab/ci/marketplace-publish.yml

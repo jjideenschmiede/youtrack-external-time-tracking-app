@@ -2,7 +2,7 @@ const common = require('./common');
 const jobs = require('./jobs');
 
 function issueSummary(ctx, lang) {
-  const summary = common.issueSummary(ctx.currentUser, lang, common.readIssueEntries(ctx.issue), common.issueEstimate(ctx.issue, ctx.settings));
+  const summary = common.issueSummary(ctx.currentUser, lang, common.readIssueEntries(ctx.issue), common.issueEstimate(ctx.issue, ctx.currentUser, ctx.settings));
   return Object.assign(summary, {estimationField: common.projectEstimationField(ctx.issue.project)});
 }
 
