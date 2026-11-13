@@ -31,8 +31,13 @@ release:
     - npm run pack
     - unzip -Z1 "$PACKAGE_NAME.zip" | grep -Fxq 'manifest.json'
     - |
-      PACKAGE_URL="$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/$PACKAGE_NAME/$VERSION/$PACKAGE_NAME.zip"
-      curl --fail-with-body --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$PACKAGE_NAME.zip" "$PACKAGE_URL"
+      API_URL="$CI_API_V4_URL"
+      if ! curl --silent --output /dev/null --max-time 10 "$API_URL/version"; then
+        API_URL="http://$CI_SERVER_HOST/api/v4"
+      fi
+      PACKAGE_PATH="projects/$CI_PROJECT_ID/packages/generic/$PACKAGE_NAME/$VERSION/$PACKAGE_NAME.zip"
+      PACKAGE_URL="$CI_API_V4_URL/$PACKAGE_PATH"
+      curl --fail-with-body --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$PACKAGE_NAME.zip" "$API_URL/$PACKAGE_PATH"
       PACKAGE_URL="$PACKAGE_URL" node -e "
         const fs = require('fs');
         process.stdout.write(JSON.stringify({
@@ -42,7 +47,7 @@ release:
           assets: {links: [{name: process.env.PACKAGE_NAME + '.zip', url: process.env.PACKAGE_URL, link_type: 'package'}]}
         }));
       " > release.json
-      RELEASE_URL="$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases"
+      RELEASE_URL="$API_URL/projects/$CI_PROJECT_ID/releases"
       if curl --silent --fail --output /dev/null --header "JOB-TOKEN: $CI_JOB_TOKEN" "$RELEASE_URL/$CI_COMMIT_TAG"; then
         PACKAGE_URL="$PACKAGE_URL" node -e "
           process.stdout.write(JSON.stringify({name: process.env.PACKAGE_NAME + '.zip', url: process.env.PACKAGE_URL, link_type: 'package'}));
