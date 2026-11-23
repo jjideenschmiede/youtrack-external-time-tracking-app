@@ -31,7 +31,7 @@ import {CalendarChips} from '../common/calendar-chips';
 import {canEdit} from '../common/editable';
 import {absenceLabel} from '../common/calendar';
 import {AbsenceForm} from './absence-form';
-import type {AbsenceDay, AbsenceInput, AccountStatus, Calendar, EntryInput, TimeEntry} from '../common/types';
+import type {AbsenceBalance, AbsenceDay, AbsenceInput, AccountStatus, Calendar, EntryInput, TimeEntry} from '../common/types';
 import {t} from '../common/i18n';
 
 const host = await YTApp.register();
@@ -140,6 +140,7 @@ const AppComponent: React.FunctionComponent = () => {
   const [cancelling, setCancelling] = useState<AbsenceDay | null>(null);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [balances, setBalances] = useState<Record<number, AbsenceBalance>>({});
 
   useEffect(() => {
     api.getAccount()
@@ -169,6 +170,24 @@ const AppComponent: React.FunctionComponent = () => {
   }, [api, weekStart]);
 
   const connected = !!status?.account;
+  const canAddAbsence = (status?.account?.absenceTypes?.length ?? 0) > 0;
+
+  const loadBalance = useCallback(async (year: number) => {
+    const result = await api.getAbsenceBalance(year);
+    setBalances(prev => ({...prev, [year]: result}));
+    return result;
+  }, [api]);
+
+  const reloadBalance = useCallback(() => {
+    setBalances({});
+    loadBalance(new Date().getFullYear()).catch(() => undefined);
+  }, [loadBalance]);
+
+  useEffect(() => {
+    if (canAddAbsence) {
+      reloadBalance();
+    }
+  }, [canAddAbsence, reloadBalance]);
 
   useEffect(() => {
     if (connected) {
@@ -202,13 +221,14 @@ const AppComponent: React.FunctionComponent = () => {
     const result = await api.createAbsence(input);
     setAbsenceOpen(false);
     host.alert(result.requested ? t('absenceRequested') : t('absenceSaved'));
+    reloadBalance();
     const absenceWeek = startOfWeek(parseDateKey(input.fromDate));
     if (absenceWeek.getTime() === weekStart.getTime()) {
       await loadEntries();
     } else {
       setWeekStart(absenceWeek);
     }
-  }, [api, loadEntries, weekStart]);
+  }, [api, loadEntries, reloadBalance, weekStart]);
 
   const openCancel = useCallback((absence: AbsenceDay) => {
     setCancelError(null);
@@ -225,13 +245,14 @@ const AppComponent: React.FunctionComponent = () => {
       await api.cancelAbsence(cancelling.id, cancelling.requested);
       setCancelling(null);
       host.alert(t('absenceCancelled'));
+      reloadBalance();
       await loadEntries();
     } catch (e) {
       setCancelError(e instanceof Error ? e.message : t('absenceCancelFailed'));
     } finally {
       setCancelBusy(false);
     }
-  }, [api, cancelling, loadEntries]);
+  }, [api, cancelling, loadEntries, reloadBalance]);
 
   const stopClock = useCallback(async (entry: TimeEntry) => {
     setStopping(true);
@@ -366,7 +387,8 @@ const AppComponent: React.FunctionComponent = () => {
           <AbsenceForm
             types={absenceTypes}
             providerName={status.account.providerName}
-            loadBalance={api.getAbsenceBalance}
+            balances={balances}
+            loadBalance={loadBalance}
             onSubmit={submitAbsence}
             onCancel={() => setAbsenceOpen(false)}
           />

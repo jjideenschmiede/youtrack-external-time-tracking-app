@@ -24,10 +24,11 @@ function formatDays(value: number): string {
 export const AbsenceForm: React.FC<{
   types: AbsenceType[];
   providerName: string;
+  balances: Record<number, AbsenceBalance>;
   loadBalance: (year: number) => Promise<AbsenceBalance>;
   onSubmit: (input: AbsenceInput) => Promise<void>;
   onCancel: () => void;
-}> = ({types, providerName, loadBalance, onSubmit, onCancel}) => {
+}> = ({types, providerName, balances, loadBalance, onSubmit, onCancel}) => {
   const items: TypeItem[] = types.map(type => ({key: type.id, label: type.label, kind: type.kind}));
   const [selected, setSelected] = useState<TypeItem>(items[0]);
   const [from, setFrom] = useState<Date>(() => startOfDay(new Date()));
@@ -37,30 +38,20 @@ export const AbsenceForm: React.FC<{
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [balance, setBalance] = useState<AbsenceBalance | null>(null);
 
   const singleDay = from.getTime() === to.getTime();
   const year = from.getFullYear();
   const vacation = selected.kind === 'vacation';
 
-  useEffect(() => {
-    if (!vacation) {
-      return undefined;
-    }
-    let cancelled = false;
-    loadBalance(year)
-      .then(result => {
-        if (!cancelled) {
-          setBalance(result);
-        }
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [loadBalance, vacation, year]);
+  const known = balances[year];
 
-  const shownBalance = vacation && balance && balance.year === year ? balance.balance : null;
+  useEffect(() => {
+    if (vacation && !known) {
+      loadBalance(year).catch(() => undefined);
+    }
+  }, [loadBalance, vacation, known, year]);
+
+  const shownBalance = known ? known.balance : null;
 
   const changeFrom = (value: Date) => {
     setFrom(value);
@@ -109,13 +100,15 @@ export const AbsenceForm: React.FC<{
           }}
           size={Select.Size.FULL}
         />
-        {shownBalance && (
+        {vacation && (
           <div className="ett-hint-mapped">
-            {t('vacationLeft', {
-              remaining: formatDays(shownBalance.remaining),
-              total: formatDays(shownBalance.total),
-              year
-            })}
+            {shownBalance
+              ? t('vacationLeft', {
+                remaining: formatDays(shownBalance.remaining),
+                total: formatDays(shownBalance.total),
+                year
+              })
+              : '\u00a0'}
           </div>
         )}
       </div>
