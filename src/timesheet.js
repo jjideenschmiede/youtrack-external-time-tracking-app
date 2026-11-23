@@ -47,6 +47,33 @@ exports.httpHandler = {
     {
       scope: 'global',
       method: 'POST',
+      path: 'absences',
+      handle: (ctx) => {
+        common.respond(ctx, (lang) => jobs.start(ctx, lang, 'absenceCreate', {body: common.requestBody(ctx)}));
+      }
+    },
+    {
+      scope: 'global',
+      method: 'POST',
+      path: 'absences/balance',
+      handle: (ctx) => {
+        common.respond(ctx, (lang) => jobs.start(ctx, lang, 'absenceBalance', {year: common.requestBody(ctx).year}));
+      }
+    },
+    {
+      scope: 'global',
+      method: 'POST',
+      path: 'absences/cancel',
+      handle: (ctx) => {
+        common.respond(ctx, (lang) => {
+          const body = common.requestBody(ctx);
+          return jobs.start(ctx, lang, 'absenceCancel', {id: body.id, requested: body.requested});
+        });
+      }
+    },
+    {
+      scope: 'global',
+      method: 'POST',
       path: 'entries',
       handle: (ctx) => {
         common.respond(ctx, (lang) => jobs.start(ctx, lang, 'create', {body: common.requestBody(ctx)}));

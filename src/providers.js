@@ -41,7 +41,7 @@ function clockodoConnection(credentials, lang) {
   const connection = new http.Connection(BASE_URL);
   connection.addHeader('X-ClockodoApiUser', credentials.email);
   connection.addHeader('X-ClockodoApiKey', credentials.apiKey);
-  connection.addHeader('X-Clockodo-External-Application', 'YouTrack;support@jj-ideenschmiede.de');
+  connection.addHeader('X-Clockodo-External-Application', 'YouTrack Time Tracking;support@jj-ideenschmiede.de');
   connection.addHeader('X-ClockodoEnableIsoUtcDateTimes', '1');
   connection.addHeader('Accept-Language', lang === 'de' ? 'de' : 'en');
   connection.addHeader('Accept', 'application/json');
@@ -127,6 +127,9 @@ const ABSENCE_TYPES = {
 };
 const ABSENCE_REQUESTED = 0;
 const ABSENCE_APPROVED = 1;
+const ABSENCE_APPROVAL_CANCELLED = 3;
+const ABSENCE_CANCELLED = 4;
+const ABSENCE_OFFERED = [1, 4, 5];
 
 function yearsBetween(fromDate, toDate) {
   const years = [];
@@ -315,7 +318,10 @@ const clockodo = {
             absence.count_days !== undefined && absence.count_days < 1;
           eachDate(from, to, (date) => {
             absences.push({
+              id: String(absence.id),
               date: date,
+              from: absence.date_since,
+              to: absence.date_until,
               kind: type.kind,
               label: i18n.pick(lang, type.label),
               requested: absence.status === ABSENCE_REQUESTED,
@@ -335,6 +341,60 @@ const clockodo = {
       });
     });
     return {absences: absences, holidays: holidays};
+  },
+
+  absenceTypes: (lang) => ABSENCE_OFFERED.map((id) => ({
+    id: String(id),
+    kind: ABSENCE_TYPES[id].kind,
+    label: i18n.pick(lang, ABSENCE_TYPES[id].label)
+  })),
+
+  createAbsenceRequest: (account, input) => {
+    const payload = {
+      users_id: Number(account.externalUserId),
+      type: Number(input.type),
+      date_since: input.fromDate,
+      date_until: input.toDate
+    };
+    if (input.halfDay) {
+      payload.half_day = true;
+    }
+    if (input.note) {
+      payload.note = input.note;
+    }
+    return {method: 'POST', path: '/v4/absences', query: [], payload: payload};
+  },
+
+  cancelAbsenceRequest: (id, requested) => ({
+    method: 'PUT',
+    path: '/v4/absences/' + encodeURIComponent(String(id)),
+    query: [],
+    payload: {status: requested ? ABSENCE_CANCELLED : ABSENCE_APPROVAL_CANCELLED}
+  }),
+
+  balanceRequest: (account, year) => ({
+    method: 'GET',
+    path: '/userreports/' + encodeURIComponent(String(account.externalUserId)),
+    query: [{name: 'year', value: String(year)}, {name: 'type', value: '0'}],
+    optional: true
+  }),
+
+  parseBalance: (body) => {
+    const report = body && body.userreport;
+    if (!report || typeof report.holidays_quota !== 'number') {
+      return null;
+    }
+    const total = report.holidays_quota + (report.holidays_carry || 0) -
+      (report.holidays_forfeited || 0) - (report.holidays_paid_out || 0);
+    const used = report.sum_absence && typeof report.sum_absence.regular_holidays === 'number'
+      ? report.sum_absence.regular_holidays
+      : 0;
+    return {total: total, remaining: total - used};
+  },
+
+  parseAbsence: (body) => {
+    const absence = (body && (body.data || body.absence)) || {};
+    return {requested: absence.status === ABSENCE_REQUESTED};
   },
 
   createRequest: (input) => {

@@ -116,6 +116,11 @@ export function dateKey(date: Date): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+export function parseDateKey(key: string): Date {
+  const [year, month, day] = key.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export function formatElapsed(seconds: number): string {
   const total = Math.max(0, Math.floor(seconds));
   const hours = Math.floor(total / 3600);

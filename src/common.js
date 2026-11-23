@@ -8,6 +8,7 @@ const CACHE_FRESH = 10 * 60 * 1000;
 const CACHE_MAX_AGE = 24 * 3600 * 1000;
 const CACHE_MAX_KEYS = 80;
 const MAX_LABEL_LENGTH = 200;
+const MAX_NOTE_LENGTH = 512;
 
 function parseJson(value, fallback) {
   if (!value) {
@@ -87,7 +88,8 @@ function publicAccount(user, lang) {
     email: connection.account.email,
     company: connection.account.company || null,
     lock: connection.account.lock || null,
-    links: providers.links(connection.provider, lang)
+    links: providers.links(connection.provider, lang),
+    absenceTypes: typeof connection.provider.absenceTypes === 'function' ? connection.provider.absenceTypes(lang) : []
   };
 }
 
@@ -306,6 +308,24 @@ function readRange(from, to, maxDays, tooLongKey) {
   return {from: range.from.toISOString(), to: range.to.toISOString()};
 }
 
+function validateAbsence(provider, lang, body) {
+  if (typeof provider.createAbsenceRequest !== 'function' || !body) {
+    i18n.fail('invalidBody');
+  }
+  const type = String(body.type || '');
+  if (!provider.absenceTypes(lang).some((option) => option.id === type)) {
+    i18n.fail('invalidBody');
+  }
+  const range = readDateRange(body.fromDate, body.toDate);
+  return {
+    type: type,
+    fromDate: range.fromDate,
+    toDate: range.toDate,
+    halfDay: body.halfDay === true && range.fromDate === range.toDate,
+    note: String(body.note || '').trim().slice(0, MAX_NOTE_LENGTH)
+  };
+}
+
 function readDateRange(fromDate, toDate) {
   const pattern = /^\d{4}-\d{2}-\d{2}$/;
   if (!pattern.test(fromDate || '') || !pattern.test(toDate || '') || toDate < fromDate) {
@@ -467,6 +487,17 @@ function writeCache(user, key, data) {
   user.extensionProperties.timeTrackingCache = JSON.stringify(kept);
 }
 
+function dropCache(user, prefix) {
+  const cache = parseJson(user.extensionProperties.timeTrackingCache, {}) || {};
+  const kept = {};
+  Object.keys(cache)
+    .filter((name) => name.indexOf(prefix) !== 0)
+    .forEach((name) => {
+      kept[name] = cache[name];
+    });
+  user.extensionProperties.timeTrackingCache = Object.keys(kept).length > 0 ? JSON.stringify(kept) : null;
+}
+
 function readIssueEntries(issue) {
   const entries = parseJson(issue.extensionProperties.timeTrackingEntries, []);
   return Array.isArray(entries) ? entries : [];
@@ -549,6 +580,8 @@ exports.projectEstimationField = projectEstimationField;
 exports.saveProjectEstimationField = saveProjectEstimationField;
 exports.readCache = readCache;
 exports.writeCache = writeCache;
+exports.dropCache = dropCache;
+exports.validateAbsence = validateAbsence;
 exports.readIssueEntries = readIssueEntries;
 exports.writeIssueEntries = writeIssueEntries;
 exports.readProjectIndex = readProjectIndex;

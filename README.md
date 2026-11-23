@@ -34,6 +34,7 @@ The App lets every user connect their own account of an external time tracking s
 - "Log Time" dialog in the issue options menu
 - Edit your own time entries from the issue panel and the weekly timesheet, as long as the editing lock of the time tracking system allows it
 - Weekly timesheet in the YouTrack main menu, issue IDs in entry descriptions are linked to their issues
+- Absences in the weekly timesheet: vacation, sick days and public holidays of the time tracking system are shown per day, and you can add or cancel vacation and sick days without leaving YouTrack
 - Dashboard widget that shows your running clock with the elapsed time and its issue
 - Time Tracking tab in each project with a weekly or monthly report grouped by issue, person, customer, project or service, including CSV export
 - Automatic preselection of customer, project and service based on YouTrack issue fields, and of the customer based on the customer groups of helpdesk tickets

@@ -3,7 +3,7 @@
   "name": "external-time-tracking",
   "title": "External Time Tracking",
   "description": "Connects YouTrack with external time tracking systems such as Clockodo: log time or start the clock directly in issues, see tracked time per issue, open your weekly timesheet, get time reports per project and use it from AI assistants via MCP tools.",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "vendor": {
     "name": "J&J Ideenschmiede GmbH",
     "url": "https://jj-ideenschmiede.de",

@@ -25,11 +25,13 @@ import {
   isoWeek,
   startOfWeek
 } from '../common/duration';
-import {dateKey} from '../common/duration';
+import {dateKey, parseDateKey} from '../common/duration';
 import {daysFor} from '../common/calendar';
 import {CalendarChips} from '../common/calendar-chips';
 import {canEdit} from '../common/editable';
-import type {AccountStatus, Calendar, EntryInput, TimeEntry} from '../common/types';
+import {absenceLabel} from '../common/calendar';
+import {AbsenceForm} from './absence-form';
+import type {AbsenceBalance, AbsenceDay, AbsenceInput, AccountStatus, Calendar, EntryInput, TimeEntry} from '../common/types';
 import {t} from '../common/i18n';
 
 const host = await YTApp.register();
@@ -134,6 +136,11 @@ const AppComponent: React.FunctionComponent = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TimeEntry | null>(null);
   const [stopping, setStopping] = useState(false);
+  const [absenceOpen, setAbsenceOpen] = useState(false);
+  const [cancelling, setCancelling] = useState<AbsenceDay | null>(null);
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [balances, setBalances] = useState<Record<number, AbsenceBalance>>({});
 
   useEffect(() => {
     api.getAccount()
@@ -163,6 +170,24 @@ const AppComponent: React.FunctionComponent = () => {
   }, [api, weekStart]);
 
   const connected = !!status?.account;
+  const canAddAbsence = (status?.account?.absenceTypes?.length ?? 0) > 0;
+
+  const loadBalance = useCallback(async (year: number) => {
+    const result = await api.getAbsenceBalance(year);
+    setBalances(prev => ({...prev, [year]: result}));
+    return result;
+  }, [api]);
+
+  const reloadBalance = useCallback(() => {
+    setBalances({});
+    loadBalance(new Date().getFullYear()).catch(() => undefined);
+  }, [loadBalance]);
+
+  useEffect(() => {
+    if (canAddAbsence) {
+      reloadBalance();
+    }
+  }, [canAddAbsence, reloadBalance]);
 
   useEffect(() => {
     if (connected) {
@@ -192,6 +217,43 @@ const AppComponent: React.FunctionComponent = () => {
     await loadEntries();
   }, [api, editing, loadEntries]);
 
+  const submitAbsence = useCallback(async (input: AbsenceInput) => {
+    const result = await api.createAbsence(input);
+    setAbsenceOpen(false);
+    host.alert(result.requested ? t('absenceRequested') : t('absenceSaved'));
+    reloadBalance();
+    const absenceWeek = startOfWeek(parseDateKey(input.fromDate));
+    if (absenceWeek.getTime() === weekStart.getTime()) {
+      await loadEntries();
+    } else {
+      setWeekStart(absenceWeek);
+    }
+  }, [api, loadEntries, reloadBalance, weekStart]);
+
+  const openCancel = useCallback((absence: AbsenceDay) => {
+    setCancelError(null);
+    setCancelling(absence);
+  }, []);
+
+  const confirmCancel = useCallback(async () => {
+    if (!cancelling) {
+      return;
+    }
+    setCancelBusy(true);
+    setCancelError(null);
+    try {
+      await api.cancelAbsence(cancelling.id, cancelling.requested);
+      setCancelling(null);
+      host.alert(t('absenceCancelled'));
+      reloadBalance();
+      await loadEntries();
+    } catch (e) {
+      setCancelError(e instanceof Error ? e.message : t('absenceCancelFailed'));
+    } finally {
+      setCancelBusy(false);
+    }
+  }, [api, cancelling, loadEntries, reloadBalance]);
+
   const stopClock = useCallback(async (entry: TimeEntry) => {
     setStopping(true);
     try {
@@ -209,6 +271,7 @@ const AppComponent: React.FunctionComponent = () => {
   const weekTotal = days.reduce((sum, day) => sum + day.totalSeconds, 0);
   const isCurrentWeek = weekStart.getTime() === startOfWeek(new Date()).getTime();
   const weekEnd = addDays(weekStart, DAYS_PER_WEEK - 1);
+  const absenceTypes = status?.account?.absenceTypes ?? [];
 
   if (!status) {
     return (
@@ -254,6 +317,9 @@ const AppComponent: React.FunctionComponent = () => {
               {link.label}
             </Button>
           ))}
+          {absenceTypes.length > 0 && (
+            <Button onClick={() => setAbsenceOpen(true)}>{t('addAbsence')}</Button>
+          )}
           <Button primary onClick={() => setDialogOpen(true)}>{t('logTime')}</Button>
         </div>
       </div>
@@ -277,7 +343,10 @@ const AppComponent: React.FunctionComponent = () => {
               <header className="day-header">
                 <span className="day-heading">
                   <span className="day-title">{formatDay(day.date)}</span>
-                  <CalendarChips {...daysFor(calendar, dateKey(day.date))}/>
+                  <CalendarChips
+                    {...daysFor(calendar, dateKey(day.date))}
+                    onCancel={absenceTypes.length > 0 ? openCancel : undefined}
+                  />
                 </span>
                 <span className="ett-duration day-total">{day.totalSeconds > 0 ? formatDuration(day.totalSeconds) : '—'}</span>
               </header>
@@ -310,6 +379,47 @@ const AppComponent: React.FunctionComponent = () => {
             onSubmit={submitEdit}
             onCancel={() => setEditing(null)}
           />
+        </TimeDialog>
+      )}
+
+      {absenceOpen && (
+        <TimeDialog title={t('addAbsence')} overlay onClose={() => setAbsenceOpen(false)}>
+          <AbsenceForm
+            types={absenceTypes}
+            providerName={status.account.providerName}
+            balances={balances}
+            loadBalance={loadBalance}
+            onSubmit={submitAbsence}
+            onCancel={() => setAbsenceOpen(false)}
+          />
+        </TimeDialog>
+      )}
+
+      {cancelling && (
+        <TimeDialog title={t('cancelAbsence')} overlay onClose={() => setCancelling(null)}>
+          <div className="ett-form">
+            <Text>
+              {cancelling.from === cancelling.to
+                ? t('cancelAbsenceDay', {
+                  label: absenceLabel(cancelling),
+                  date: formatShortDate(parseDateKey(cancelling.from)),
+                  provider: status.account.providerName
+                })
+                : t('cancelAbsenceRange', {
+                  label: absenceLabel(cancelling),
+                  from: formatShortDate(parseDateKey(cancelling.from)),
+                  to: formatShortDate(parseDateKey(cancelling.to)),
+                  provider: status.account.providerName
+                })}
+            </Text>
+            {cancelError && <Banner mode="error" withIcon inline>{cancelError}</Banner>}
+            <div className="ett-actions">
+              <Button danger onClick={confirmCancel} loader={cancelBusy} disabled={cancelBusy}>
+                {t('cancelAbsence')}
+              </Button>
+              <Button onClick={() => setCancelling(null)} disabled={cancelBusy}>{t('keepAbsence')}</Button>
+            </div>
+          </div>
         </TimeDialog>
       )}
 
