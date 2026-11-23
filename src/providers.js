@@ -41,7 +41,7 @@ function clockodoConnection(credentials, lang) {
   const connection = new http.Connection(BASE_URL);
   connection.addHeader('X-ClockodoApiUser', credentials.email);
   connection.addHeader('X-ClockodoApiKey', credentials.apiKey);
-  connection.addHeader('X-Clockodo-External-Application', 'YouTrack;support@jj-ideenschmiede.de');
+  connection.addHeader('X-Clockodo-External-Application', 'YouTrack Time Tracking;support@jj-ideenschmiede.de');
   connection.addHeader('X-ClockodoEnableIsoUtcDateTimes', '1');
   connection.addHeader('Accept-Language', lang === 'de' ? 'de' : 'en');
   connection.addHeader('Accept', 'application/json');
