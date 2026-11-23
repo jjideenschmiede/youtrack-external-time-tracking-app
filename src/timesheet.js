@@ -55,6 +55,14 @@ exports.httpHandler = {
     {
       scope: 'global',
       method: 'POST',
+      path: 'absences/balance',
+      handle: (ctx) => {
+        common.respond(ctx, (lang) => jobs.start(ctx, lang, 'absenceBalance', {year: common.requestBody(ctx).year}));
+      }
+    },
+    {
+      scope: 'global',
+      method: 'POST',
       path: 'absences/cancel',
       handle: (ctx) => {
         common.respond(ctx, (lang) => {

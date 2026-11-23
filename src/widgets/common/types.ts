@@ -32,6 +32,11 @@ export interface AbsenceType {
   label: string;
 }
 
+export interface AbsenceBalance {
+  year: number;
+  balance: {total: number; remaining: number} | null;
+}
+
 export interface AbsenceInput {
   type: string;
   fromDate: string;

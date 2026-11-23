@@ -366,6 +366,7 @@ const AppComponent: React.FunctionComponent = () => {
           <AbsenceForm
             types={absenceTypes}
             providerName={status.account.providerName}
+            loadBalance={api.getAbsenceBalance}
             onSubmit={submitAbsence}
             onCancel={() => setAbsenceOpen(false)}
           />

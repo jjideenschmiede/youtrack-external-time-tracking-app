@@ -372,6 +372,26 @@ const clockodo = {
     payload: {status: requested ? ABSENCE_CANCELLED : ABSENCE_APPROVAL_CANCELLED}
   }),
 
+  balanceRequest: (account, year) => ({
+    method: 'GET',
+    path: '/userreports/' + encodeURIComponent(String(account.externalUserId)),
+    query: [{name: 'year', value: String(year)}, {name: 'type', value: '0'}],
+    optional: true
+  }),
+
+  parseBalance: (body) => {
+    const report = body && body.userreport;
+    if (!report || typeof report.holidays_quota !== 'number') {
+      return null;
+    }
+    const total = report.holidays_quota + (report.holidays_carry || 0) -
+      (report.holidays_forfeited || 0) - (report.holidays_paid_out || 0);
+    const used = report.sum_absence && typeof report.sum_absence.regular_holidays === 'number'
+      ? report.sum_absence.regular_holidays
+      : 0;
+    return {total: total, remaining: total - used};
+  },
+
   parseAbsence: (body) => {
     const absence = (body && (body.data || body.absence)) || {};
     return {requested: absence.status === ABSENCE_REQUESTED};

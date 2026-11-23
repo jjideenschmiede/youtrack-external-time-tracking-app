@@ -1,28 +1,34 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import Input, {Size as InputSize} from '@jetbrains/ring-ui-built/components/input/input';
 import Select from '@jetbrains/ring-ui-built/components/select/select';
 import Checkbox from '@jetbrains/ring-ui-built/components/checkbox/checkbox';
 import DatePicker from '@jetbrains/ring-ui-built/components/date-picker/date-picker';
 import Banner from '@jetbrains/ring-ui-built/components/banner/banner';
-import type {AbsenceInput, AbsenceType} from '../common/types';
+import type {AbsenceBalance, AbsenceInput, AbsenceType} from '../common/types';
 import {dateKey, startOfDay} from '../common/duration';
-import {dateFnsLocale, t} from '../common/i18n';
+import {dateFnsLocale, locale, t} from '../common/i18n';
 
 const MAX_NOTE_LENGTH = 512;
 
 interface TypeItem {
   key: string;
   label: string;
+  kind: AbsenceType['kind'];
+}
+
+function formatDays(value: number): string {
+  return value.toLocaleString(locale, {maximumFractionDigits: 2});
 }
 
 export const AbsenceForm: React.FC<{
   types: AbsenceType[];
   providerName: string;
+  loadBalance: (year: number) => Promise<AbsenceBalance>;
   onSubmit: (input: AbsenceInput) => Promise<void>;
   onCancel: () => void;
-}> = ({types, providerName, onSubmit, onCancel}) => {
-  const items: TypeItem[] = types.map(type => ({key: type.id, label: type.label}));
+}> = ({types, providerName, loadBalance, onSubmit, onCancel}) => {
+  const items: TypeItem[] = types.map(type => ({key: type.id, label: type.label, kind: type.kind}));
   const [selected, setSelected] = useState<TypeItem>(items[0]);
   const [from, setFrom] = useState<Date>(() => startOfDay(new Date()));
   const [to, setTo] = useState<Date>(() => startOfDay(new Date()));
@@ -31,7 +37,30 @@ export const AbsenceForm: React.FC<{
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [balance, setBalance] = useState<AbsenceBalance | null>(null);
+
   const singleDay = from.getTime() === to.getTime();
+  const year = from.getFullYear();
+  const vacation = selected.kind === 'vacation';
+
+  useEffect(() => {
+    if (!vacation) {
+      return undefined;
+    }
+    let cancelled = false;
+    loadBalance(year)
+      .then(result => {
+        if (!cancelled) {
+          setBalance(result);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [loadBalance, vacation, year]);
+
+  const shownBalance = vacation && balance && balance.year === year ? balance.balance : null;
 
   const changeFrom = (value: Date) => {
     setFrom(value);
@@ -80,6 +109,15 @@ export const AbsenceForm: React.FC<{
           }}
           size={Select.Size.FULL}
         />
+        {shownBalance && (
+          <div className="ett-hint-mapped">
+            {t('vacationLeft', {
+              remaining: formatDays(shownBalance.remaining),
+              total: formatDays(shownBalance.total),
+              year
+            })}
+          </div>
+        )}
       </div>
 
       <div className="ett-row">

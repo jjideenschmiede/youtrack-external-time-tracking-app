@@ -10,6 +10,8 @@ const REFRESH_WINDOW_DAYS = 60;
 const LOCK_MAX_AGE = 24 * 3600 * 1000;
 const CUSTOMER_GROUPS_SOURCE = 'Customer groups';
 const CALENDAR_CACHE = 'calendar:';
+const MIN_YEAR = 2000;
+const MAX_YEAR = 2100;
 
 function done(result) {
   return {result: result};
@@ -329,6 +331,27 @@ exports.absenceCreate = {
     common.dropCache(env.user, CALENDAR_CACHE);
     return done(providers.find(job.provider).parseAbsence(body));
   }
+};
+
+exports.absenceBalance = {
+  cacheKey: (job) => CALENDAR_CACHE + 'balance:' + job.params.year,
+  start: (job, env) => {
+    const session = common.openSession(env.user, job.lang);
+    job.provider = session.provider.id;
+    const year = Number(job.params.year);
+    if (!Number.isInteger(year) || year < MIN_YEAR || year > MAX_YEAR) {
+      i18n.fail('invalidBody');
+    }
+    if (typeof session.provider.balanceRequest !== 'function') {
+      return done({year: year, balance: null});
+    }
+    job.state = {year: year};
+    return send(session.provider.balanceRequest(session.account, year));
+  },
+  next: (job, env, request, body) => done({
+    year: job.state.year,
+    balance: providers.find(job.provider).parseBalance(body)
+  })
 };
 
 exports.absenceCancel = {
