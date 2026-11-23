@@ -1,6 +1,6 @@
 import type {HostAPI} from '../../../@types/globals';
 import {lang, t} from './i18n';
-import type {Account, AccountStatus, Calendar, EntryForm, EntryInput, IssueSummary, Option, ProjectReport, RunningClock, TimeEntry} from './types';
+import type {AbsenceInput, Account, AccountStatus, Calendar, EntryForm, EntryInput, IssueSummary, Option, ProjectReport, RunningClock, TimeEntry} from './types';
 
 type Result<T> = T & {error?: string};
 type Params = {method?: string; query?: Record<string, string>; body?: unknown; scope?: boolean};
@@ -87,6 +87,10 @@ export function createApi(host: HostAPI) {
       job<{entries: TimeEntry[]; account?: Account | null}>(host, 'timesheet/list', {body: {from: from.toISOString(), to: to.toISOString()}}),
     getCalendar: (fromDate: string, toDate: string) =>
       job<Calendar>(host, 'timesheet/calendar', {body: {fromDate, toDate}}),
+    createAbsence: (input: AbsenceInput) =>
+      job<{requested: boolean}>(host, 'timesheet/absences', {body: input}),
+    cancelAbsence: (id: string, requested: boolean) =>
+      job<{cancelled: boolean}>(host, 'timesheet/absences/cancel', {body: {id, requested}}),
     createEntry: (input: EntryInput) =>
       job<{entry: TimeEntry}>(host, 'timesheet/entries', {body: input}),
     updateEntry: (id: string, input: EntryInput, previousText: string) =>

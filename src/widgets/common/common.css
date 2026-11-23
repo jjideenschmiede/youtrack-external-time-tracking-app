@@ -157,6 +157,22 @@ body {
   background-color: transparent;
 }
 
+.ett-chip-remove {
+  margin: 0 calc(var(--ring-unit) / -2) 0 calc(var(--ring-unit) / 2);
+  padding: 0 calc(var(--ring-unit) / 2);
+  border: 0;
+  color: var(--ring-secondary-color);
+  background: none;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.ett-chip-remove:hover,
+.ett-chip-remove:focus-visible {
+  color: var(--ring-link-hover-color);
+}
+
 :root:root,
 :root .ring-ui-theme-dark {
   --ring-link-hover-color: light-dark(#ff008c, #d671b3);

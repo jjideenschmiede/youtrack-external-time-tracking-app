@@ -9,6 +9,7 @@ const ENTRIES_MAX_DAYS = 62;
 const REFRESH_WINDOW_DAYS = 60;
 const LOCK_MAX_AGE = 24 * 3600 * 1000;
 const CUSTOMER_GROUPS_SOURCE = 'Customer groups';
+const CALENDAR_CACHE = 'calendar:';
 
 function done(result) {
   return {result: result};
@@ -296,7 +297,7 @@ exports.update = {
 };
 
 exports.calendar = {
-  cacheKey: (job) => 'calendar:' + job.params.fromDate + ':' + job.params.toDate,
+  cacheKey: (job) => CALENDAR_CACHE + job.params.fromDate + ':' + job.params.toDate,
   start: (job, env) => {
     const session = common.openSession(env.user, job.lang);
     job.provider = session.provider.id;
@@ -313,6 +314,36 @@ exports.calendar = {
       return send(job.state.queue.shift());
     }
     return done(providers.find(job.provider).parseCalendar(job.lang, job.state.range, job.state.results));
+  }
+};
+
+exports.absenceCreate = {
+  start: (job, env) => {
+    const session = common.openSession(env.user, job.lang);
+    job.provider = session.provider.id;
+    const input = common.validateAbsence(session.provider, job.lang, job.params.body);
+    job.params = {};
+    return send(session.provider.createAbsenceRequest(session.account, input));
+  },
+  next: (job, env, request, body) => {
+    common.dropCache(env.user, CALENDAR_CACHE);
+    return done(providers.find(job.provider).parseAbsence(body));
+  }
+};
+
+exports.absenceCancel = {
+  start: (job, env) => {
+    const session = common.openSession(env.user, job.lang);
+    job.provider = session.provider.id;
+    const id = String(job.params.id || '');
+    if (typeof session.provider.cancelAbsenceRequest !== 'function' || !/^\d+$/.test(id)) {
+      i18n.fail('invalidBody');
+    }
+    return send(session.provider.cancelAbsenceRequest(id, job.params.requested === true));
+  },
+  next: (job, env) => {
+    common.dropCache(env.user, CALENDAR_CACHE);
+    return done({cancelled: true});
   }
 };
 

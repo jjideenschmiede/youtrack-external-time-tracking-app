@@ -127,6 +127,9 @@ const ABSENCE_TYPES = {
 };
 const ABSENCE_REQUESTED = 0;
 const ABSENCE_APPROVED = 1;
+const ABSENCE_APPROVAL_CANCELLED = 3;
+const ABSENCE_CANCELLED = 4;
+const ABSENCE_OFFERED = [1, 4, 5];
 
 function yearsBetween(fromDate, toDate) {
   const years = [];
@@ -315,7 +318,10 @@ const clockodo = {
             absence.count_days !== undefined && absence.count_days < 1;
           eachDate(from, to, (date) => {
             absences.push({
+              id: String(absence.id),
               date: date,
+              from: absence.date_since,
+              to: absence.date_until,
               kind: type.kind,
               label: i18n.pick(lang, type.label),
               requested: absence.status === ABSENCE_REQUESTED,
@@ -335,6 +341,40 @@ const clockodo = {
       });
     });
     return {absences: absences, holidays: holidays};
+  },
+
+  absenceTypes: (lang) => ABSENCE_OFFERED.map((id) => ({
+    id: String(id),
+    kind: ABSENCE_TYPES[id].kind,
+    label: i18n.pick(lang, ABSENCE_TYPES[id].label)
+  })),
+
+  createAbsenceRequest: (account, input) => {
+    const payload = {
+      users_id: Number(account.externalUserId),
+      type: Number(input.type),
+      date_since: input.fromDate,
+      date_until: input.toDate
+    };
+    if (input.halfDay) {
+      payload.half_day = true;
+    }
+    if (input.note) {
+      payload.note = input.note;
+    }
+    return {method: 'POST', path: '/v4/absences', query: [], payload: payload};
+  },
+
+  cancelAbsenceRequest: (id, requested) => ({
+    method: 'PUT',
+    path: '/v4/absences/' + encodeURIComponent(String(id)),
+    query: [],
+    payload: {status: requested ? ABSENCE_CANCELLED : ABSENCE_APPROVAL_CANCELLED}
+  }),
+
+  parseAbsence: (body) => {
+    const absence = (body && (body.data || body.absence)) || {};
+    return {requested: absence.status === ABSENCE_REQUESTED};
   },
 
   createRequest: (input) => {

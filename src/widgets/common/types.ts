@@ -23,6 +23,21 @@ export interface Account {
   company: string | null;
   lock?: EditLock | null;
   links: ProviderLink[];
+  absenceTypes?: AbsenceType[];
+}
+
+export interface AbsenceType {
+  id: string;
+  kind: AbsenceDay['kind'];
+  label: string;
+}
+
+export interface AbsenceInput {
+  type: string;
+  fromDate: string;
+  toDate: string;
+  halfDay: boolean;
+  note: string;
 }
 
 export interface EditLock {
@@ -141,7 +156,10 @@ export interface EntryInput {
 }
 
 export interface AbsenceDay {
+  id: string;
   date: string;
+  from: string;
+  to: string;
   kind: 'vacation' | 'sick' | 'remote' | 'other';
   label: string;
   requested: boolean;
