@@ -8,6 +8,7 @@ const HANDLER = 'onProviderResponse';
 const PENDING_TTL = 10 * 60 * 1000;
 const FINISHED_TTL = 10 * 60 * 1000;
 const SLOTS = 16;
+const REUSABLE_SLOTS = 8;
 const MAX_PAGES = 8;
 
 function slotName(index) {
@@ -44,18 +45,20 @@ function writeJob(user, job) {
 function pickSlot(user) {
   const now = Date.now();
   const free = [];
-  let oldest = 0;
-  let oldestExpires = Infinity;
+  const taken = [];
   for (let index = 0; index < SLOTS; index++) {
     const slot = readSlot(user, index);
     if (!slot || slot.expires <= now) {
       free.push(index);
-    } else if (slot.expires < oldestExpires) {
-      oldest = index;
-      oldestExpires = slot.expires;
+    } else {
+      taken.push({index: index, expires: slot.expires});
     }
   }
-  return free.length > 0 ? free[Math.floor(Math.random() * free.length)] : oldest;
+  if (free.length > 0) {
+    return free[Math.floor(Math.random() * free.length)];
+  }
+  const oldest = taken.sort((a, b) => a.expires - b.expires).slice(0, REUSABLE_SLOTS);
+  return oldest[Math.floor(Math.random() * oldest.length)].index;
 }
 
 function findIssue(id) {
