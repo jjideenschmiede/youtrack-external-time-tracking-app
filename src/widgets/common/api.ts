@@ -10,14 +10,17 @@ interface JobTicket {
 }
 
 interface JobState<T> {
-  status: 'pending' | 'done';
+  status: 'pending' | 'done' | 'lost';
   result?: T;
 }
 
 const POLL_DELAYS = [250, 400, 600, 800, 1000];
 const POLL_TIMEOUT = 45000;
+const LOST_RETRIES = 2;
 
 export class ApiError extends Error {}
+
+class JobLostError extends Error {}
 
 let jobQueue: Promise<unknown> = Promise.resolve();
 
@@ -50,15 +53,33 @@ async function poll<T>(host: HostAPI, id: string): Promise<T> {
     if (state.status === 'done') {
       return state.result as T;
     }
+    if (state.status === 'lost') {
+      throw new JobLostError();
+    }
   }
   throw new ApiError(t('requestTimeout'));
 }
 
-function job<T>(host: HostAPI, path: string, params: Params): Promise<T> {
-  const run = async () => {
-    const response = await request<T | JobTicket>(host, path, {method: 'POST', body: {}, ...params});
-    return isTicket(response) ? poll<T>(host, response.job) : response as T;
-  };
+async function runJob<T>(host: HostAPI, path: string, params: Params, retries: number): Promise<T> {
+  const response = await request<T | JobTicket>(host, path, {method: 'POST', body: {}, ...params});
+  if (!isTicket(response)) {
+    return response as T;
+  }
+  try {
+    return await poll<T>(host, response.job);
+  } catch (e) {
+    if (!(e instanceof JobLostError)) {
+      throw e;
+    }
+    if (retries <= 0) {
+      throw new ApiError(t('requestExpired'));
+    }
+    return runJob<T>(host, path, params, retries - 1);
+  }
+}
+
+function job<T>(host: HostAPI, path: string, params: Params, repeatable = false): Promise<T> {
+  const run = () => runJob<T>(host, path, params, repeatable ? LOST_RETRIES : 0);
   const result = jobQueue.then(run, run);
   jobQueue = result.catch(() => undefined);
   return result;
@@ -72,7 +93,7 @@ export function createApi(host: HostAPI) {
     disconnect: () => request<AccountStatus>(host, 'account/disconnect', {method: 'POST', body: {}}),
 
     getEntryForm: () => request<EntryForm>(host, 'timesheet/form'),
-    getIssueEntryForm: () => job<EntryForm>(host, 'issue/form', {scope: true}),
+    getIssueEntryForm: () => job<EntryForm>(host, 'issue/form', {scope: true}, true),
     getOptions: (field: string, refs: Record<string, string | null>) => {
       const selected: Record<string, string> = {};
       Object.keys(refs).forEach(key => {
@@ -81,16 +102,16 @@ export function createApi(host: HostAPI) {
           selected[key] = value;
         }
       });
-      return job<{options: Option[]}>(host, 'timesheet/options', {body: {field, refs: selected}});
+      return job<{options: Option[]}>(host, 'timesheet/options', {body: {field, refs: selected}}, true);
     },
     getEntries: (from: Date, to: Date) =>
-      job<{entries: TimeEntry[]; account?: Account | null}>(host, 'timesheet/list', {body: {from: from.toISOString(), to: to.toISOString()}}),
+      job<{entries: TimeEntry[]; account?: Account | null}>(host, 'timesheet/list', {body: {from: from.toISOString(), to: to.toISOString()}}, true),
     getCalendar: (fromDate: string, toDate: string) =>
-      job<Calendar>(host, 'timesheet/calendar', {body: {fromDate, toDate}}),
+      job<Calendar>(host, 'timesheet/calendar', {body: {fromDate, toDate}}, true),
     createAbsence: (input: AbsenceInput) =>
       job<{requested: boolean}>(host, 'timesheet/absences', {body: input}),
     getAbsenceBalance: (year: number) =>
-      job<AbsenceBalance>(host, 'timesheet/absences/balance', {body: {year}}),
+      job<AbsenceBalance>(host, 'timesheet/absences/balance', {body: {year}}, true),
     cancelAbsence: (id: string, requested: boolean) =>
       job<{cancelled: boolean}>(host, 'timesheet/absences/cancel', {body: {id, requested}}),
     createEntry: (input: EntryInput) =>
@@ -98,7 +119,7 @@ export function createApi(host: HostAPI) {
     updateEntry: (id: string, input: EntryInput, previousText: string) =>
       job<{entry: TimeEntry}>(host, 'timesheet/update', {body: {id, entry: input, previousText}}),
 
-    syncClock: () => job<{clock: RunningClock | null}>(host, 'timesheet/clock', {}),
+    syncClock: () => job<{clock: RunningClock | null}>(host, 'timesheet/clock', {}, true),
     stopClock: (id: string) => job<{clock: RunningClock | null}>(host, 'timesheet/clock/stop', {body: {id}}),
     startIssueClock: (input: EntryInput) => job<IssueSummary>(host, 'issue/clock/start', {body: input, scope: true}),
     stopIssueClock: () => job<IssueSummary>(host, 'issue/clock/stop', {scope: true}),
@@ -106,7 +127,7 @@ export function createApi(host: HostAPI) {
     getIssueSummary: () => request<IssueSummary>(host, 'issue/summary', {scope: true}),
     setEstimationField: (name: string | null) =>
       request<IssueSummary>(host, 'issue/estimation-field', {method: 'POST', body: {name}, scope: true}),
-    refreshIssue: () => job<{changed: boolean}>(host, 'issue/refresh', {scope: true}),
+    refreshIssue: () => job<{changed: boolean}>(host, 'issue/refresh', {scope: true}, true),
     createIssueEntry: (input: EntryInput) =>
       job<IssueSummary>(host, 'issue/entries', {body: input, scope: true}),
     updateIssueEntry: (id: string, input: EntryInput) =>
@@ -115,7 +136,7 @@ export function createApi(host: HostAPI) {
     getProjectReport: (from: Date, to: Date) =>
       request<ProjectReport>(host, 'project/report', {method: 'POST', body: {from: from.toISOString(), to: to.toISOString()}, scope: true}),
     backfillProject: (from: Date, to: Date) =>
-      job<{changed: boolean}>(host, 'project/backfill', {body: {from: from.toISOString(), to: to.toISOString()}, scope: true})
+      job<{changed: boolean}>(host, 'project/backfill', {body: {from: from.toISOString(), to: to.toISOString()}, scope: true}, true)
   };
 }
 

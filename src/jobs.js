@@ -7,33 +7,55 @@ const i18n = require('./i18n');
 const HANDLER = 'onProviderResponse';
 const PENDING_TTL = 10 * 60 * 1000;
 const FINISHED_TTL = 10 * 60 * 1000;
-const MAX_JOBS = 8;
+const SLOTS = 16;
 const MAX_PAGES = 8;
 
-function readJobs(user) {
-  const jobs = common.parseJson(user.extensionProperties.timeTrackingJobs, {});
-  return jobs && typeof jobs === 'object' ? jobs : {};
+function slotName(index) {
+  return 'timeTrackingJob' + index;
 }
 
-function writeJobs(user, jobs) {
-  user.extensionProperties.timeTrackingJobs = Object.keys(jobs).length > 0 ? JSON.stringify(jobs) : null;
+function slotOf(id) {
+  const index = parseInt(String(id || '').split('-')[0], 36);
+  return index >= 0 && index < SLOTS ? index : null;
 }
 
-function pruneJobs(jobs) {
+function readSlot(user, index) {
+  const raw = user.extensionProperties[slotName(index)];
+  const split = raw ? raw.indexOf(';') : -1;
+  if (split < 0) {
+    return null;
+  }
+  return {expires: Number(raw.slice(0, split)) || 0, body: raw.slice(split + 1)};
+}
+
+function readJob(user, id) {
+  const index = slotOf(id);
+  const slot = index === null ? null : readSlot(user, index);
+  const job = slot ? common.parseJson(slot.body, null) : null;
+  return job && job.id === id ? job : null;
+}
+
+function writeJob(user, job) {
+  const ttl = job.status === 'pending' ? PENDING_TTL : FINISHED_TTL;
+  const expires = (job.finished || job.created) + ttl;
+  user.extensionProperties[slotName(slotOf(job.id))] = expires + ';' + JSON.stringify(job);
+}
+
+function pickSlot(user) {
   const now = Date.now();
-  const kept = {};
-  Object.keys(jobs)
-    .filter((id) => {
-      const job = jobs[id];
-      const age = job ? now - (job.finished || job.created) : Infinity;
-      return job && age < (job.status === 'pending' ? PENDING_TTL : FINISHED_TTL);
-    })
-    .sort((a, b) => jobs[b].created - jobs[a].created)
-    .slice(0, MAX_JOBS - 1)
-    .forEach((id) => {
-      kept[id] = jobs[id];
-    });
-  return kept;
+  const free = [];
+  let oldest = 0;
+  let oldestExpires = Infinity;
+  for (let index = 0; index < SLOTS; index++) {
+    const slot = readSlot(user, index);
+    if (!slot || slot.expires <= now) {
+      free.push(index);
+    } else if (slot.expires < oldestExpires) {
+      oldest = index;
+      oldestExpires = slot.expires;
+    }
+  }
+  return free.length > 0 ? free[Math.floor(Math.random() * free.length)] : oldest;
 }
 
 function findIssue(id) {
@@ -81,8 +103,11 @@ function dispatch(ctx, job, request, credentials, pendingCredentials) {
 
 function start(ctx, lang, kind, params) {
   const user = ctx.currentUser;
+  if (user.extensionProperties.timeTrackingJobs) {
+    user.extensionProperties.timeTrackingJobs = null;
+  }
   const job = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+    id: pickSlot(user).toString(36) + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
     kind: kind,
     lang: lang,
     params: params || {},
@@ -110,9 +135,7 @@ function start(ctx, lang, kind, params) {
   const pendingCredentials = !!step.credentials;
   const credentials = step.credentials || savedCredentials(user);
   dispatch(ctx, job, step.request, credentials, pendingCredentials);
-  const jobs = pruneJobs(readJobs(user));
-  jobs[job.id] = job;
-  writeJobs(user, jobs);
+  writeJob(user, job);
   return cached ? cachedData : {job: job.id};
 }
 
@@ -151,8 +174,7 @@ function finish(job, result) {
 function onProviderResponse(ctx) {
   const user = ctx.currentUser;
   const id = ctx.load('jobId');
-  const jobs = readJobs(user);
-  const job = jobs[id];
+  const job = readJob(user, id);
   if (!job || job.status !== 'pending') {
     return;
   }
@@ -175,7 +197,7 @@ function onProviderResponse(ctx) {
       const more = body ? provider.nextPage(request, body) : null;
       if (more && more.page <= MAX_PAGES) {
         dispatch(ctx, job, more, credentials, pendingCredentials);
-        writeJobs(user, jobs);
+        writeJob(user, job);
         return;
       }
       data = job.buffer;
@@ -201,13 +223,13 @@ function onProviderResponse(ctx) {
     job.buffer = [];
     job.request = null;
   }
-  writeJobs(user, jobs);
+  writeJob(user, job);
 }
 
-function readJob(user, id) {
-  const job = readJobs(user)[id];
+function jobState(user, id) {
+  const job = readJob(user, id);
   if (!job) {
-    i18n.fail('jobNotFound');
+    return {status: 'lost'};
   }
   if (job.status === 'error') {
     i18n.failRaw(job.error);
@@ -216,7 +238,7 @@ function readJob(user, id) {
 }
 
 exports.start = start;
-exports.readJob = readJob;
+exports.jobState = jobState;
 exports.asyncFunctions = {
   onProviderResponse: onProviderResponse
 };

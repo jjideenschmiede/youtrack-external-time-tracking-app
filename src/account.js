@@ -35,7 +35,7 @@ exports.httpHandler = {
       method: 'GET',
       path: 'job',
       handle: (ctx) => {
-        common.respond(ctx, () => jobs.readJob(ctx.currentUser, ctx.request.getParameter('id')));
+        common.respond(ctx, () => jobs.jobState(ctx.currentUser, ctx.request.getParameter('id')));
       }
     }
   ],

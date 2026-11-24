@@ -23,6 +23,54 @@
         },
         "timeTrackingClockReminder": {
           "type": "boolean"
+        },
+        "timeTrackingJob0": {
+          "type": "string"
+        },
+        "timeTrackingJob1": {
+          "type": "string"
+        },
+        "timeTrackingJob2": {
+          "type": "string"
+        },
+        "timeTrackingJob3": {
+          "type": "string"
+        },
+        "timeTrackingJob4": {
+          "type": "string"
+        },
+        "timeTrackingJob5": {
+          "type": "string"
+        },
+        "timeTrackingJob6": {
+          "type": "string"
+        },
+        "timeTrackingJob7": {
+          "type": "string"
+        },
+        "timeTrackingJob8": {
+          "type": "string"
+        },
+        "timeTrackingJob9": {
+          "type": "string"
+        },
+        "timeTrackingJob10": {
+          "type": "string"
+        },
+        "timeTrackingJob11": {
+          "type": "string"
+        },
+        "timeTrackingJob12": {
+          "type": "string"
+        },
+        "timeTrackingJob13": {
+          "type": "string"
+        },
+        "timeTrackingJob14": {
+          "type": "string"
+        },
+        "timeTrackingJob15": {
+          "type": "string"
         }
       }
     },
