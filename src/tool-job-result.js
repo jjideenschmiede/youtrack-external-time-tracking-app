@@ -1,5 +1,6 @@
 const assistant = require('./assistant');
 const jobs = require('./jobs');
+const i18n = require('./i18n');
 
 const ENTRY_LIMIT = 500;
 
@@ -84,7 +85,10 @@ exports.aiTool = {
     openWorldHint: false
   },
   execute: (ctx) => assistant.run(ctx, () => {
-    const state = jobs.readJob(ctx.currentUser, String((ctx.arguments || {}).jobId || ''));
+    const state = jobs.jobState(ctx.currentUser, String((ctx.arguments || {}).jobId || ''));
+    if (state.status === 'lost') {
+      i18n.fail('jobNotFound');
+    }
     return state.status === 'done' ? {status: 'done', result: describe(state.result)} : {status: 'pending'};
   })
 };
