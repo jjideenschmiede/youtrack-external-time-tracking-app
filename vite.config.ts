@@ -36,10 +36,6 @@ export default defineConfig({
         {
           src: 'widgets/**/*.{svg,png,jpg,json}',
           dest: '.'
-        },
-        {
-          src: 'widgets/oauth-callback/index.html',
-          dest: '.'
         }
       ],
       structured: true
@@ -64,6 +60,8 @@ export default defineConfig({
         issueTimeEntry: resolve(__dirname, 'src/widgets/issue-time-entry/index.html'),
 
         issueTimePanel: resolve(__dirname, 'src/widgets/issue-time-panel/index.html'),
+
+        oauthCallback: resolve(__dirname, 'src/widgets/oauth-callback/index.html'),
 
         projectTimeReport: resolve(__dirname, 'src/widgets/project-time-report/index.html'),
 
