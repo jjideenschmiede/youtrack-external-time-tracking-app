@@ -154,8 +154,48 @@ function refreshEntries(issue, user, provider, remote) {
   return changed;
 }
 
+exports.oauthStart = {
+  start: (job, env) => {
+    const provider = common.oauthProvider(env.user, job.params.provider);
+    const redirectUri = common.cleanRedirectUri(job.params.redirectUri);
+    const client = common.readOAuthClient(env.user, provider, redirectUri);
+    job.provider = provider.id;
+    job.params = {};
+    if (client) {
+      return done(common.oauthAuthorization(provider, client));
+    }
+    job.state = {redirectUri: redirectUri};
+    return send(provider.oauth.registerRequest(redirectUri));
+  },
+  next: (job, env, request, body) => {
+    const provider = providers.find(job.provider);
+    const clientId = provider.oauth.parseClient(body);
+    const client = common.writeOAuthClient(env.user, provider, job.state.redirectUri, clientId);
+    return done(common.oauthAuthorization(provider, client));
+  }
+};
+
+function startOAuthConnect(job, env) {
+  const provider = common.oauthProvider(env.user, job.params.provider);
+  const input = job.params.oauth;
+  const redirectUri = common.cleanRedirectUri(input.redirectUri);
+  const client = common.readOAuthClient(env.user, provider, redirectUri);
+  const code = typeof input.code === 'string' ? input.code.trim() : '';
+  const verifier = typeof input.verifier === 'string' ? input.verifier.trim() : '';
+  if (!client || !code || !verifier) {
+    i18n.fail('oauthIncomplete');
+  }
+  job.provider = provider.id;
+  job.params = {};
+  job.state = {clientId: client.clientId};
+  return send(provider.oauth.codeRequest(client.clientId, {code: code, verifier: verifier, redirectUri: redirectUri}));
+}
+
 exports.connect = {
   start: (job, env) => {
+    if (job.params.oauth) {
+      return startOAuthConnect(job, env);
+    }
     const cleaned = common.cleanCredentials(env.user, job.params.provider, job.params.credentials);
     job.provider = cleaned.provider.id;
     job.params = {};
@@ -163,6 +203,12 @@ exports.connect = {
   },
   next: (job, env, request, body) => {
     const provider = providers.find(job.provider);
+    if (request.oauth) {
+      return {
+        request: provider.verifyRequest(),
+        credentials: provider.oauth.parseToken(body, job.state.clientId, null)
+      };
+    }
     const profile = provider.parseVerify(body, env.credentials);
     return done(common.saveConnection(env.user, job.lang, provider, profile, env.credentials));
   }

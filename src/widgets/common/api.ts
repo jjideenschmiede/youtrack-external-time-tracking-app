@@ -1,6 +1,6 @@
 import type {HostAPI} from '../../../@types/globals';
 import {lang, t} from './i18n';
-import type {AbsenceBalance, AbsenceInput, Account, AccountStatus, Calendar, EntryForm, EntryInput, IssueSummary, Option, ProjectReport, RunningClock, TimeEntry} from './types';
+import type {AbsenceBalance, AbsenceInput, Account, AccountStatus, Calendar, EntryForm, EntryInput, IssueSummary, OAuthAuthorization, OAuthGrant, Option, ProjectReport, RunningClock, TimeEntry} from './types';
 
 type Result<T> = T & {error?: string};
 type Params = {method?: string; query?: Record<string, string>; body?: unknown; scope?: boolean};
@@ -90,6 +90,10 @@ export function createApi(host: HostAPI) {
     getAccount: () => request<AccountStatus>(host, 'account/status'),
     connect: (provider: string, credentials: Record<string, string>) =>
       job<AccountStatus>(host, 'account/connect', {body: {provider, credentials}}),
+    startOAuth: (provider: string, redirectUri: string) =>
+      job<OAuthAuthorization>(host, 'account/oauth/start', {body: {provider, redirectUri}}),
+    connectOAuth: (provider: string, oauth: OAuthGrant) =>
+      job<AccountStatus>(host, 'account/connect', {body: {provider, oauth}}),
     disconnect: () => request<AccountStatus>(host, 'account/disconnect', {method: 'POST', body: {}}),
 
     getEntryForm: () => request<EntryForm>(host, 'timesheet/form'),

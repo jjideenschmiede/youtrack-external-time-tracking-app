@@ -36,6 +36,10 @@ export default defineConfig({
         {
           src: 'widgets/**/*.{svg,png,jpg,json}',
           dest: '.'
+        },
+        {
+          src: 'widgets/oauth-callback/index.html',
+          dest: '.'
         }
       ],
       structured: true

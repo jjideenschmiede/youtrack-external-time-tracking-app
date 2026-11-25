@@ -18,7 +18,22 @@ exports.httpHandler = {
       handle: (ctx) => {
         common.respond(ctx, (lang) => {
           const body = common.requestBody(ctx);
-          return jobs.start(ctx, lang, 'connect', {provider: body.provider, credentials: body.credentials});
+          return jobs.start(ctx, lang, 'connect', {
+            provider: body.provider,
+            credentials: body.credentials,
+            oauth: body.oauth && typeof body.oauth === 'object' ? body.oauth : null
+          });
+        });
+      }
+    },
+    {
+      scope: 'global',
+      method: 'POST',
+      path: 'oauth/start',
+      handle: (ctx) => {
+        common.respond(ctx, (lang) => {
+          const body = common.requestBody(ctx);
+          return jobs.start(ctx, lang, 'oauthStart', {provider: body.provider, redirectUri: body.redirectUri});
         });
       }
     },

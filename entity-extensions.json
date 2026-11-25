@@ -9,6 +9,9 @@
         "timeTrackingCredentials": {
           "type": "string"
         },
+        "timeTrackingOAuthClient": {
+          "type": "string"
+        },
         "timeTrackingPreferences": {
           "type": "string"
         },

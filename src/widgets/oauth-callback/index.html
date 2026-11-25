@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>Time Tracking</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 48px 24px;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        line-height: 20px;
+        color: #1f2326;
+        background: #fff;
+      }
+      main {
+        max-width: 480px;
+        margin: 0 auto;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 20px;
+        line-height: 28px;
+        font-weight: 600;
+      }
+      p {
+        margin: 0 0 16px;
+      }
+      textarea {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 96px;
+        padding: 8px;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 12px;
+        border: 1px solid #b8c1cc;
+        border-radius: 4px;
+        resize: vertical;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          color: #dfe1e5;
+          background: #1e1f22;
+        }
+        textarea {
+          color: #dfe1e5;
+          background: #2b2d30;
+          border-color: #4e5157;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1 id="title"></h1>
+      <p id="text"></p>
+      <textarea id="code" readonly hidden></textarea>
+    </main>
+    <script>
+      (function () {
+        var texts = {
+          en: {
+            doneTitle: 'Sign-in completed',
+            doneText: 'You can close this window and return to YouTrack.',
+            errorTitle: 'Sign-in failed',
+            manualTitle: 'Almost done',
+            manualText: 'This window could not hand the sign-in over to YouTrack automatically. Copy the code below and paste it in your YouTrack profile under “Time Tracking”.',
+            emptyText: 'No sign-in code was received. Please start the sign-in again in your YouTrack profile.'
+          },
+          de: {
+            doneTitle: 'Anmeldung abgeschlossen',
+            doneText: 'Du kannst dieses Fenster schließen und zu YouTrack zurückkehren.',
+            errorTitle: 'Anmeldung fehlgeschlagen',
+            manualTitle: 'Fast geschafft',
+            manualText: 'Dieses Fenster konnte die Anmeldung nicht automatisch an YouTrack übergeben. Kopiere den folgenden Code und füge ihn in deinem YouTrack-Profil unter „Time Tracking“ ein.',
+            emptyText: 'Es wurde kein Anmeldecode empfangen. Bitte starte die Anmeldung in deinem YouTrack-Profil erneut.'
+          }
+        };
+        var t = (navigator.language || '').toLowerCase().indexOf('de') === 0 ? texts.de : texts.en;
+        var params = new URLSearchParams(window.location.search);
+        var code = params.get('code');
+        var error = params.get('error_description') || params.get('error');
+        var delivered = false;
+        try {
+          if (window.opener) {
+            window.opener.postMessage({
+              source: 'external-time-tracking-oauth',
+              code: code,
+              state: params.get('state'),
+              error: error
+            }, '*');
+            delivered = true;
+          }
+        } catch (e) {
+          delivered = false;
+        }
+        var title = document.getElementById('title');
+        var text = document.getElementById('text');
+        var field = document.getElementById('code');
+        if (error) {
+          title.textContent = t.errorTitle;
+          text.textContent = error;
+        } else if (!code) {
+          title.textContent = t.errorTitle;
+          text.textContent = t.emptyText;
+        } else if (delivered) {
+          title.textContent = t.doneTitle;
+          text.textContent = t.doneText;
+          window.setTimeout(function () {
+            window.close();
+          }, 800);
+        } else {
+          title.textContent = t.manualTitle;
+          text.textContent = t.manualText;
+          field.value = code;
+          field.hidden = false;
+          field.addEventListener('focus', function () {
+            field.select();
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

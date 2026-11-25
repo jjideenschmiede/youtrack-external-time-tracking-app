@@ -10,6 +10,8 @@ const FINISHED_TTL = 10 * 60 * 1000;
 const SLOTS = 16;
 const REUSABLE_SLOTS = 8;
 const MAX_PAGES = 8;
+const REFRESH_MARGIN = 60 * 1000;
+const REFRESH_REJECTED = [400, 401];
 
 function slotName(index) {
   return 'timeTrackingJob' + index;
@@ -84,9 +86,18 @@ function savedCredentials(user) {
   return common.parseJson(user.extensionProperties.timeTrackingCredentials, null);
 }
 
+function requestPayload(request) {
+  if (!request.form) {
+    return JSON.stringify(request.payload || {});
+  }
+  return Object.keys(request.form)
+    .map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(request.form[key]))
+    .join('&');
+}
+
 function dispatch(ctx, job, request, credentials, pendingCredentials) {
   const provider = providers.find(job.provider);
-  const connection = provider.connection(credentials, job.lang);
+  const connection = provider.connection(credentials, job.lang, request);
   const query = provider.pageQuery(request);
   job.request = request;
   ctx.store('jobId', job.id);
@@ -94,14 +105,54 @@ function dispatch(ctx, job, request, credentials, pendingCredentials) {
     ctx.store('credentials', JSON.stringify(credentials));
   }
   if (request.method === 'POST') {
-    connection.postAsync(request.path, query, JSON.stringify(request.payload || {}), HANDLER);
+    connection.postAsync(request.path, query, requestPayload(request), HANDLER);
   } else if (request.method === 'PUT') {
-    connection.putAsync(request.path, query, JSON.stringify(request.payload || {}), HANDLER);
+    connection.putAsync(request.path, query, requestPayload(request), HANDLER);
   } else if (request.method === 'DELETE') {
     connection.deleteAsync(request.path, query, HANDLER);
   } else {
     connection.getAsync(request.path, query, HANDLER);
   }
+}
+
+function isFresh(credentials) {
+  return credentials.expiresAt - REFRESH_MARGIN > Date.now();
+}
+
+function canRefresh(provider, request, credentials) {
+  return !!provider.oauth && !request.oauth && !!credentials && !!credentials.refreshToken;
+}
+
+function refresh(ctx, job, request, credentials, pendingCredentials) {
+  job.resume = request;
+  job.renewing = credentials.expiresAt;
+  dispatch(ctx, job, providers.find(job.provider).oauth.refreshRequest(credentials), credentials, pendingCredentials);
+}
+
+function send(ctx, job, request, credentials, pendingCredentials) {
+  if (canRefresh(providers.find(job.provider), request, credentials) && !isFresh(credentials)) {
+    refresh(ctx, job, request, credentials, pendingCredentials);
+    return;
+  }
+  dispatch(ctx, job, request, credentials, pendingCredentials);
+}
+
+function renewedCredentials(user, provider, job, response, credentials, pendingCredentials) {
+  if (response && response.isSuccess) {
+    const renewed = provider.oauth.parseToken(JSON.parse(response.response || '{}'), credentials.clientId, credentials);
+    if (!pendingCredentials) {
+      user.extensionProperties.timeTrackingCredentials = JSON.stringify(renewed);
+    }
+    return renewed;
+  }
+  const saved = pendingCredentials ? null : savedCredentials(user);
+  if (saved && saved.accessToken && saved.expiresAt !== job.renewing && isFresh(saved)) {
+    return saved;
+  }
+  if (response && REFRESH_REJECTED.indexOf(response.code) !== -1) {
+    return i18n.fail('providerAuthorizationExpired', {provider: provider.name});
+  }
+  return provider.fail(response || {code: 0, response: null});
 }
 
 function start(ctx, lang, kind, params) {
@@ -137,7 +188,7 @@ function start(ctx, lang, kind, params) {
   }
   const pendingCredentials = !!step.credentials;
   const credentials = step.credentials || savedCredentials(user);
-  dispatch(ctx, job, step.request, credentials, pendingCredentials);
+  send(ctx, job, step.request, credentials, pendingCredentials);
   writeJob(user, job);
   return cached ? cachedData : {job: job.id};
 }
@@ -188,10 +239,27 @@ function onProviderResponse(ctx) {
     const provider = providers.find(job.provider);
     const request = job.request;
     const response = ctx.response;
+    if (job.resume) {
+      const resume = job.resume;
+      job.resume = null;
+      const renewed = renewedCredentials(user, provider, job, response, credentials, pendingCredentials);
+      dispatch(ctx, job, resume, renewed, pendingCredentials);
+      writeJob(user, job);
+      return;
+    }
+    if (response && response.code === 401 && !job.renewed && canRefresh(provider, request, credentials)) {
+      job.renewed = true;
+      refresh(ctx, job, request, credentials, pendingCredentials);
+      writeJob(user, job);
+      return;
+    }
     let body = null;
     if (response && response.isSuccess) {
       body = readBody(response);
     } else if (!request.optional) {
+      if (response && response.code === 401 && credentials && credentials.accessToken) {
+        i18n.fail('providerAuthorizationExpired', {provider: provider.name});
+      }
       provider.fail(response || {code: 0, response: null});
     }
     let data = body;
@@ -208,7 +276,7 @@ function onProviderResponse(ctx) {
     }
     const step = tasks[job.kind].next(job, environment(ctx, credentials, job), request, data);
     if (step.request) {
-      dispatch(ctx, job, step.request, credentials, pendingCredentials);
+      send(ctx, job, step.request, step.credentials || credentials, pendingCredentials || !!step.credentials);
     } else {
       finish(job, step.result);
       if (job.cacheKey) {
@@ -225,6 +293,7 @@ function onProviderResponse(ctx) {
     job.state = {};
     job.buffer = [];
     job.request = null;
+    job.resume = null;
   }
   writeJob(user, job);
 }
