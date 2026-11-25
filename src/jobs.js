@@ -86,15 +86,6 @@ function savedCredentials(user) {
   return common.parseJson(user.extensionProperties.timeTrackingCredentials, null);
 }
 
-function requestPayload(request) {
-  if (!request.form) {
-    return JSON.stringify(request.payload || {});
-  }
-  return Object.keys(request.form)
-    .map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(request.form[key]))
-    .join('&');
-}
-
 function dispatch(ctx, job, request, credentials, pendingCredentials) {
   const provider = providers.find(job.provider);
   const connection = provider.connection(credentials, job.lang, request);
@@ -105,9 +96,9 @@ function dispatch(ctx, job, request, credentials, pendingCredentials) {
     ctx.store('credentials', JSON.stringify(credentials));
   }
   if (request.method === 'POST') {
-    connection.postAsync(request.path, query, requestPayload(request), HANDLER);
+    connection.postAsync(request.path, query, common.requestPayload(request), HANDLER);
   } else if (request.method === 'PUT') {
-    connection.putAsync(request.path, query, requestPayload(request), HANDLER);
+    connection.putAsync(request.path, query, common.requestPayload(request), HANDLER);
   } else if (request.method === 'DELETE') {
     connection.deleteAsync(request.path, query, HANDLER);
   } else {

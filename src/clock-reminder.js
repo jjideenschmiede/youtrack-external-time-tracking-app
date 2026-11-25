@@ -6,7 +6,10 @@ const i18n = require('./i18n');
 const HANDLER = 'onClockChecked';
 const HOUR = 3600 * 1000;
 const NO_ISSUES = 'created: 1970-01-01';
+const RENEWED_HANDLER = 'onTokenRenewed';
 const REJECTED = [401, 403];
+const RENEWAL_REJECTED = [400, 401];
+const RENEWAL_MARGIN = 60 * 1000;
 
 function reminderHours(settings) {
   const hours = parseInt(settings && settings.clockReminder, 10);
@@ -86,6 +89,25 @@ function sendReminder(user, issue, clock) {
   );
 }
 
+function checkClock(ctx, user, clock, provider, credentials) {
+  const request = provider.clockRequest();
+  ctx.store('login', user.login);
+  ctx.store('clockId', String(clock.id));
+  provider.connection(credentials, i18n.userLanguage(user)).getAsync(request.path, provider.pageQuery(request), HANDLER);
+}
+
+function renewToken(ctx, user, clock, provider, credentials) {
+  const request = provider.oauth.refreshRequest(credentials);
+  ctx.store('login', user.login);
+  ctx.store('clockId', String(clock.id));
+  provider.connection(credentials, i18n.userLanguage(user), request)
+    .postAsync(request.path, [], common.requestPayload(request), RENEWED_HANDLER);
+}
+
+function needsRenewal(provider, credentials) {
+  return !!provider.oauth && !!credentials.refreshToken && credentials.expiresAt - RENEWAL_MARGIN <= Date.now();
+}
+
 exports.rule = entities.Issue.onSchedule({
   title: 'Remind users of long-running clocks',
   cron: '0 0/15 * * * ?',
@@ -105,12 +127,36 @@ exports.rule = entities.Issue.onSchedule({
       markReminded(user, clock);
       return;
     }
-    const request = provider.clockRequest();
-    ctx.store('login', user.login);
-    ctx.store('clockId', String(clock.id));
-    provider.connection(credentials, i18n.userLanguage(user)).getAsync(request.path, provider.pageQuery(request), HANDLER);
+    if (needsRenewal(provider, credentials)) {
+      renewToken(ctx, user, clock, provider, credentials);
+    } else {
+      checkClock(ctx, user, clock, provider, credentials);
+    }
   },
   asyncFunctions: {
+    onTokenRenewed: (ctx) => {
+      const user = entities.User.findByLogin(ctx.load('login'));
+      const clock = user ? common.readClock(user) : null;
+      if (!clock || String(clock.id) !== ctx.load('clockId') || clock.reminded) {
+        return;
+      }
+      const provider = providers.find(clock.provider);
+      const credentials = common.parseJson(user.extensionProperties.timeTrackingCredentials, null);
+      const response = ctx.response;
+      if (!provider || !credentials) {
+        markReminded(user, clock);
+        return;
+      }
+      if (!response || !response.isSuccess) {
+        if (response && RENEWAL_REJECTED.indexOf(response.code) !== -1 && needsRenewal(provider, credentials)) {
+          markReminded(user, clock);
+        }
+        return;
+      }
+      const renewed = provider.oauth.parseToken(JSON.parse(response.response || '{}'), credentials.clientId, credentials);
+      user.extensionProperties.timeTrackingCredentials = JSON.stringify(renewed);
+      checkClock(ctx, user, clock, provider, renewed);
+    },
     onClockChecked: (ctx) => {
       const user = entities.User.findByLogin(ctx.load('login'));
       const clock = user ? common.readClock(user) : null;

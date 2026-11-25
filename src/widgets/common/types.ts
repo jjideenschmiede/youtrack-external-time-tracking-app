@@ -35,6 +35,7 @@ export interface Account {
   name: string;
   email: string;
   company: string | null;
+  auth?: 'oauth' | 'apiKey';
   lock?: EditLock | null;
   links: ProviderLink[];
   absenceTypes?: AbsenceType[];

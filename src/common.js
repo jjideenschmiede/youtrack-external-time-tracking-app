@@ -83,9 +83,11 @@ function publicAccount(user, lang) {
   if (!connection) {
     return null;
   }
+  const credentials = parseJson(user.extensionProperties.timeTrackingCredentials, null);
   return {
     provider: connection.provider.id,
     providerName: connection.provider.name,
+    auth: credentials && credentials.accessToken ? 'oauth' : 'apiKey',
     name: connection.account.name,
     email: connection.account.email,
     company: connection.account.company || null,
@@ -103,6 +105,9 @@ function accountStatus(user, lang) {
 }
 
 function saveConnection(user, lang, provider, profile, credentials) {
+  const previous = parseJson(user.extensionProperties.timeTrackingAccount, null);
+  const sameAccount = !!previous && previous.provider === provider.id &&
+    previous.externalUserId === profile.externalUserId;
   user.extensionProperties.timeTrackingAccount = JSON.stringify({
     provider: provider.id,
     externalUserId: profile.externalUserId,
@@ -113,9 +118,11 @@ function saveConnection(user, lang, provider, profile, credentials) {
     connectedAt: Date.now()
   });
   user.extensionProperties.timeTrackingCredentials = JSON.stringify(credentials);
-  user.extensionProperties.timeTrackingPreferences = null;
-  user.extensionProperties.timeTrackingCache = null;
-  user.extensionProperties.timeTrackingClock = null;
+  if (!sameAccount) {
+    user.extensionProperties.timeTrackingPreferences = null;
+    user.extensionProperties.timeTrackingCache = null;
+    user.extensionProperties.timeTrackingClock = null;
+  }
   return accountStatus(user, lang);
 }
 
@@ -136,6 +143,15 @@ function cleanCredentials(user, providerId, credentials) {
     cleaned[field.key] = value;
   });
   return {provider: provider, credentials: cleaned};
+}
+
+function requestPayload(request) {
+  if (!request.form) {
+    return JSON.stringify(request.payload || {});
+  }
+  return Object.keys(request.form)
+    .map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(request.form[key]))
+    .join('&');
 }
 
 function oauthProvider(user, providerId) {
@@ -600,6 +616,7 @@ exports.openSession = openSession;
 exports.publicAccount = publicAccount;
 exports.accountStatus = accountStatus;
 exports.cleanCredentials = cleanCredentials;
+exports.requestPayload = requestPayload;
 exports.oauthProvider = oauthProvider;
 exports.cleanRedirectUri = cleanRedirectUri;
 exports.readOAuthClient = readOAuthClient;

@@ -40,41 +40,12 @@ const Row: React.FC<{label?: string; htmlFor?: string; help?: React.ReactNode; c
   </>
 );
 
-const Connected: React.FC<{account: Account; disconnecting: boolean; onDisconnect: () => void}> = (
-  {account, disconnecting, onDisconnect}
-) => (
-  <div className="settings-grid">
-    <Row label={t('provider')}>
-      <span className="settings-value">{account.providerName}</span>
-    </Row>
-    <Row label={t('account')} help={account.email || null}>
-      <span className="settings-value">{account.name}</span>
-    </Row>
-    {account.company && (
-      <Row label={t('company')}>
-        <span className="settings-value">{account.company}</span>
-      </Row>
-    )}
-    <Row>
-      <div className="settings-actions">
-        <Button danger loader={disconnecting} disabled={disconnecting} onClick={onDisconnect}>
-          {t('disconnect')}
-        </Button>
-        {account.links.map(link => (
-          <Button key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" icon={newWindowIcon}>
-            {link.label}
-          </Button>
-        ))}
-      </div>
-    </Row>
-  </div>
-);
-
 const OAuthConnect: React.FC<{
   provider: ProviderInfo;
   onConnected: (status: AccountStatus) => void;
-  onUseApiKey: () => void;
-}> = ({provider, onConnected, onUseApiKey}) => {
+  onUseApiKey?: () => void;
+  label?: string;
+}> = ({provider, onConnected, onUseApiKey, label}) => {
   const api = useMemo(() => createApi(host), []);
   const [pending, setPending] = useState<PendingOAuth | null>(null);
   const [code, setCode] = useState('');
@@ -159,9 +130,9 @@ const OAuthConnect: React.FC<{
         <Row help={t(available ? 'oauthHelp' : 'oauthUnavailable', {provider: provider.name})}>
           <div className="settings-actions">
             <Button primary onClick={start} disabled={!available || busy} loader={busy}>
-              {t('oauthConnect', {provider: provider.name})}
+              {label ?? t('oauthConnect', {provider: provider.name})}
             </Button>
-            <Button onClick={onUseApiKey} disabled={busy}>{t('useApiKey')}</Button>
+            {onUseApiKey && <Button onClick={onUseApiKey} disabled={busy}>{t('useApiKey')}</Button>}
           </div>
         </Row>
       )}
@@ -196,6 +167,48 @@ const OAuthConnect: React.FC<{
     </>
   );
 };
+
+const Connected: React.FC<{
+  account: Account;
+  provider: ProviderInfo | null;
+  disconnecting: boolean;
+  onDisconnect: () => void;
+  onConnected: (status: AccountStatus) => void;
+}> = ({account, provider, disconnecting, onDisconnect, onConnected}) => (
+  <div className="settings-grid">
+    <Row label={t('provider')}>
+      <span className="settings-value">{account.providerName}</span>
+    </Row>
+    <Row label={t('account')} help={account.email || null}>
+      <span className="settings-value">{account.name}</span>
+    </Row>
+    {account.company && (
+      <Row label={t('company')}>
+        <span className="settings-value">{account.company}</span>
+      </Row>
+    )}
+    {provider?.oauth && account.auth === 'apiKey' && (
+      <>
+        <Row>
+          <Banner mode="info" withIcon inline>{t('oauthSwitchHint', {provider: provider.name})}</Banner>
+        </Row>
+        <OAuthConnect provider={provider} onConnected={onConnected} label={t('oauthSwitch', {provider: provider.name})}/>
+      </>
+    )}
+    <Row>
+      <div className="settings-actions">
+        <Button danger loader={disconnecting} disabled={disconnecting} onClick={onDisconnect}>
+          {t('disconnect')}
+        </Button>
+        {account.links.map(link => (
+          <Button key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" icon={newWindowIcon}>
+            {link.label}
+          </Button>
+        ))}
+      </div>
+    </Row>
+  </div>
+);
 
 const ConnectForm: React.FC<{status: AccountStatus; onConnected: (status: AccountStatus) => void}> = (
   {status, onConnected}
@@ -352,7 +365,13 @@ const AppComponent: React.FunctionComponent = () => {
       {isOwnProfile && !status && !error && <LoaderInline/>}
 
       {status?.account && (
-        <Connected account={status.account} disconnecting={disconnecting} onDisconnect={handleDisconnect}/>
+        <Connected
+          account={status.account}
+          provider={status.providers.find(provider => provider.id === status.account?.provider) ?? null}
+          disconnecting={disconnecting}
+          onDisconnect={handleDisconnect}
+          onConnected={handleConnected}
+        />
       )}
       {status && !status.account && <ConnectForm status={status} onConnected={handleConnected}/>}
       {status && <McpAddress host={host}/>}
