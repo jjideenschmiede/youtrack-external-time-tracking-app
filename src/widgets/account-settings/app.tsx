@@ -1,4 +1,4 @@
-import React, {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import Input, {Size as InputSize} from '@jetbrains/ring-ui-built/components/input/input';
 import Select from '@jetbrains/ring-ui-built/components/select/select';
@@ -7,7 +7,8 @@ import LoaderInline from '@jetbrains/ring-ui-built/components/loader-inline/load
 import newWindowIcon from '@jetbrains/icons/new-window';
 import {createApi} from '../common/api';
 import {submitOnEnter} from '../common/keyboard';
-import {authorizeUrl, callbackUrl, createChallenge, isOAuthAvailable, onCallback} from '../common/oauth';
+import {isOAuthAvailable} from '../common/oauth';
+import {useOAuthConnect} from '../common/oauth-connect';
 import type {Account, AccountStatus, ProviderInfo} from '../common/types';
 import {t} from '../common/i18n';
 import {McpAddress} from './mcp-address';
@@ -19,13 +20,6 @@ interface ProviderItem {
   key: string;
   label: string;
   provider: ProviderInfo;
-}
-
-interface PendingOAuth {
-  url: string;
-  verifier: string;
-  state: string;
-  redirectUri: string;
 }
 
 const Row: React.FC<{label?: string; htmlFor?: string; help?: React.ReactNode; children: React.ReactNode}> = (
@@ -43,80 +37,12 @@ const Row: React.FC<{label?: string; htmlFor?: string; help?: React.ReactNode; c
 const OAuthConnect: React.FC<{
   provider: ProviderInfo;
   onConnected: (status: AccountStatus) => void;
-  onUseApiKey?: () => void;
   label?: string;
-}> = ({provider, onConnected, onUseApiKey, label}) => {
+}> = ({provider, onConnected, label}) => {
   const api = useMemo(() => createApi(host), []);
-  const [pending, setPending] = useState<PendingOAuth | null>(null);
-  const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const finishing = useRef(false);
-  const available = isOAuthAvailable();
-
-  const reset = useCallback((message: string | null) => {
-    setPending(null);
-    setCode('');
-    setError(message);
-  }, []);
-
-  const finish = useCallback(async (grantCode: string, current: PendingOAuth) => {
-    if (finishing.current) {
-      return;
-    }
-    finishing.current = true;
-    setBusy(true);
-    setError(null);
-    try {
-      onConnected(await api.connectOAuth(provider.id, {
-        code: grantCode,
-        verifier: current.verifier,
-        redirectUri: current.redirectUri
-      }));
-    } catch (e) {
-      reset(e instanceof Error ? e.message : t('connectFailed'));
-    } finally {
-      finishing.current = false;
-      setBusy(false);
-    }
-  }, [api, provider.id, onConnected, reset]);
-
-  useEffect(() => {
-    if (!pending) {
-      return undefined;
-    }
-    return onCallback(pending.state, callback => {
-      if (callback.code) {
-        finish(callback.code, pending);
-      } else {
-        reset(callback.error ?? t('oauthNoCode'));
-      }
-    });
-  }, [pending, finish, reset]);
-
-  const start = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const [challenge, authorization] = await Promise.all([
-        createChallenge(),
-        api.startOAuth(provider.id, callbackUrl())
-      ]);
-      const url = authorizeUrl(authorization, challenge);
-      window.open(url, '_blank');
-      setPending({url, verifier: challenge.verifier, state: challenge.state, redirectUri: authorization.redirectUri});
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('connectFailed'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const submitCode = () => {
-    if (pending && code.trim()) {
-      finish(code.trim(), pending);
-    }
-  };
+  const {waiting, code, setCode, busy, error, start, reopen, submitCode, cancel} = useOAuthConnect(
+    api, provider, onConnected
+  );
 
   return (
     <>
@@ -126,25 +52,24 @@ const OAuthConnect: React.FC<{
         </Row>
       )}
 
-      {!pending && (
-        <Row help={t(available ? 'oauthHelp' : 'oauthUnavailable', {provider: provider.name})}>
+      {!waiting && (
+        <Row help={t('oauthHelp', {provider: provider.name})}>
           <div className="settings-actions">
-            <Button primary onClick={start} disabled={!available || busy} loader={busy}>
+            <Button primary onClick={start} disabled={busy} loader={busy}>
               {label ?? t('oauthConnect', {provider: provider.name})}
             </Button>
-            {onUseApiKey && <Button onClick={onUseApiKey} disabled={busy}>{t('useApiKey')}</Button>}
           </div>
         </Row>
       )}
 
-      {pending && (
+      {waiting && (
         <>
           <Row help={t('oauthWaiting', {provider: provider.name})}>
             <div className="settings-actions">
-              <Button onClick={() => window.open(pending.url, '_blank')} disabled={busy} icon={newWindowIcon}>
+              <Button onClick={reopen} disabled={busy} icon={newWindowIcon}>
                 {t('oauthOpen')}
               </Button>
-              <Button onClick={() => reset(null)} disabled={busy}>{t('cancel')}</Button>
+              <Button onClick={cancel} disabled={busy}>{t('cancel')}</Button>
             </div>
           </Row>
           <Row label={t('oauthCode')} htmlFor="oauth-code" help={t('oauthCodeHelp')}>
@@ -187,7 +112,7 @@ const Connected: React.FC<{
         <span className="settings-value">{account.company}</span>
       </Row>
     )}
-    {provider?.oauth && account.auth === 'apiKey' && (
+    {provider?.oauth && account.auth === 'apiKey' && isOAuthAvailable() && (
       <>
         <Row>
           <Banner mode="info" withIcon inline>{t('oauthSwitchHint', {provider: provider.name})}</Banner>
@@ -222,10 +147,9 @@ const ConnectForm: React.FC<{status: AccountStatus; onConnected: (status: Accoun
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [useApiKey, setUseApiKey] = useState(false);
 
   const provider = selected?.provider ?? null;
-  const oauth = !!provider?.oauth && !useApiKey;
+  const oauth = !!provider?.oauth && isOAuthAvailable();
   const complete = !!provider && provider.credentialFields.every(field => (values[field.key] ?? '').trim() !== '');
 
   const submit = async () => {
@@ -258,7 +182,6 @@ const ConnectForm: React.FC<{status: AccountStatus; onConnected: (status: Accoun
             setSelected(item);
             setValues({});
             setError(null);
-            setUseApiKey(false);
           }}
           size={Select.Size.M}
         />
@@ -269,8 +192,13 @@ const ConnectForm: React.FC<{status: AccountStatus; onConnected: (status: Accoun
           key={provider.id}
           provider={provider}
           onConnected={onConnected}
-          onUseApiKey={() => setUseApiKey(true)}
         />
+      )}
+
+      {provider?.oauth && !oauth && (
+        <Row>
+          <Banner mode="info" withIcon inline>{t('oauthUnavailable', {provider: provider.name})}</Banner>
+        </Row>
       )}
 
       {provider && !oauth && provider.credentialFields.map((field, index) => {
@@ -312,11 +240,6 @@ const ConnectForm: React.FC<{status: AccountStatus; onConnected: (status: Accoun
             <Button primary onClick={submit} disabled={!complete || saving} loader={saving}>
               {t('connect')}
             </Button>
-            {provider?.oauth && (
-              <Button onClick={() => setUseApiKey(false)} disabled={saving}>
-                {t('useOAuth', {provider: provider.name})}
-              </Button>
-            )}
           </div>
         </Row>
       )}

@@ -7,6 +7,8 @@ import Text from '@jetbrains/ring-ui-built/components/text/text';
 import Banner from '@jetbrains/ring-ui-built/components/banner/banner';
 import type {Api} from './api';
 import {submitOnEnter} from './keyboard';
+import {isOAuthAvailable} from './oauth';
+import {useOAuthConnect} from './oauth-connect';
 import type {Account, AccountStatus, ProviderInfo} from './types';
 import {t} from './i18n';
 
@@ -53,6 +55,55 @@ export const ConnectedAccount: React.FC<{
   </div>
 );
 
+const OAuthForm: React.FC<{
+  api: Api;
+  provider: ProviderInfo;
+  onConnected: (status: AccountStatus) => void;
+}> = ({api, provider, onConnected}) => {
+  const {waiting, code, setCode, busy, error, start, reopen, submitCode, cancel} = useOAuthConnect(
+    api, provider, onConnected
+  );
+
+  return (
+    <>
+      <Text size={Text.Size.S} info>
+        {t(waiting ? 'oauthWaiting' : 'oauthHelp', {provider: provider.name})}
+      </Text>
+
+      {error && <Banner mode="error" withIcon inline>{error}</Banner>}
+
+      {!waiting && (
+        <div className="ett-actions">
+          <Button primary onClick={start} disabled={busy} loader={busy}>
+            {t('oauthConnect', {provider: provider.name})}
+          </Button>
+        </div>
+      )}
+
+      {waiting && (
+        <>
+          <Input
+            label={t('oauthCode')}
+            autoComplete="off"
+            help={t('oauthCodeHelp')}
+            value={code}
+            size={InputSize.FULL}
+            onKeyDown={event => submitOnEnter(event, submitCode)}
+            onChange={e => setCode(e.target.value)}
+          />
+          <div className="ett-actions">
+            <Button primary onClick={submitCode} disabled={!code.trim() || busy} loader={busy}>
+              {t('connect')}
+            </Button>
+            <Button onClick={reopen} disabled={busy}>{t('oauthOpen')}</Button>
+            <Button onClick={cancel} disabled={busy}>{t('cancel')}</Button>
+          </div>
+        </>
+      )}
+    </>
+  );
+};
+
 export const AccountForm: React.FC<{
   api: Api;
   status: AccountStatus;
@@ -66,6 +117,7 @@ export const AccountForm: React.FC<{
   const [error, setError] = useState<string | null>(null);
 
   const provider = selected?.provider ?? null;
+  const oauth = !!provider?.oauth && isOAuthAvailable();
   const complete = !!provider && provider.credentialFields.every(field => (values[field.key] ?? '').trim() !== '');
 
   const submit = async () => {
@@ -91,7 +143,7 @@ export const AccountForm: React.FC<{
 
   return (
     <div className="ett-form">
-      {!compact && (
+      {!compact && !oauth && (
         <Text info>
           {t('credentialsNotice')}
         </Text>
@@ -110,7 +162,13 @@ export const AccountForm: React.FC<{
         size={Select.Size.FULL}
       />
 
-      {provider && provider.credentialFields.map(field => (
+      {provider && oauth && <OAuthForm key={provider.id} api={api} provider={provider} onConnected={onChange}/>}
+
+      {provider?.oauth && !oauth && (
+        <Banner mode="info" withIcon inline>{t('oauthUnavailable', {provider: provider.name})}</Banner>
+      )}
+
+      {provider && !oauth && provider.credentialFields.map(field => (
         <Input
           key={`${provider.id}-${field.key}`}
           label={field.label}
@@ -128,7 +186,7 @@ export const AccountForm: React.FC<{
         />
       ))}
 
-      {provider?.credentialHelp && (
+      {!oauth && provider?.credentialHelp && (
         <Text size={Text.Size.S} info>
           {provider.credentialHelp}
           {provider.credentialHelpUrl && (
@@ -140,13 +198,15 @@ export const AccountForm: React.FC<{
         </Text>
       )}
 
-      {error && <Banner mode="error" withIcon inline>{error}</Banner>}
+      {error && !oauth && <Banner mode="error" withIcon inline>{error}</Banner>}
 
-      <div className="ett-actions">
-        <Button primary onClick={submit} disabled={!complete || saving} loader={saving}>
-          {t('connect')}
-        </Button>
-      </div>
+      {!oauth && (
+        <div className="ett-actions">
+          <Button primary onClick={submit} disabled={!complete || saving} loader={saving}>
+            {t('connect')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
