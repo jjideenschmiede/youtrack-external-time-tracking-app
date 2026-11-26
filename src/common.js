@@ -9,6 +9,8 @@ const CACHE_MAX_AGE = 24 * 3600 * 1000;
 const CACHE_MAX_KEYS = 80;
 const MAX_LABEL_LENGTH = 200;
 const MAX_NOTE_LENGTH = 512;
+const OAUTH_CALLBACK_PATTERN = /^https?:\/\/[^\s?#]+\/api\/appResources\/[^\s?#/]+\/widgets\/oauth-callback\/index\.html$/;
+const OAUTH_CLIENT_MAX_AGE = 30 * 24 * 3600 * 1000;
 
 function parseJson(value, fallback) {
   if (!value) {
@@ -81,9 +83,11 @@ function publicAccount(user, lang) {
   if (!connection) {
     return null;
   }
+  const credentials = parseJson(user.extensionProperties.timeTrackingCredentials, null);
   return {
     provider: connection.provider.id,
     providerName: connection.provider.name,
+    auth: credentials && credentials.accessToken ? 'oauth' : 'apiKey',
     name: connection.account.name,
     email: connection.account.email,
     company: connection.account.company || null,
@@ -101,6 +105,9 @@ function accountStatus(user, lang) {
 }
 
 function saveConnection(user, lang, provider, profile, credentials) {
+  const previous = parseJson(user.extensionProperties.timeTrackingAccount, null);
+  const sameAccount = !!previous && previous.provider === provider.id &&
+    previous.externalUserId === profile.externalUserId;
   user.extensionProperties.timeTrackingAccount = JSON.stringify({
     provider: provider.id,
     externalUserId: profile.externalUserId,
@@ -111,9 +118,11 @@ function saveConnection(user, lang, provider, profile, credentials) {
     connectedAt: Date.now()
   });
   user.extensionProperties.timeTrackingCredentials = JSON.stringify(credentials);
-  user.extensionProperties.timeTrackingPreferences = null;
-  user.extensionProperties.timeTrackingCache = null;
-  user.extensionProperties.timeTrackingClock = null;
+  if (!sameAccount) {
+    user.extensionProperties.timeTrackingPreferences = null;
+    user.extensionProperties.timeTrackingCache = null;
+    user.extensionProperties.timeTrackingClock = null;
+  }
   return accountStatus(user, lang);
 }
 
@@ -134,6 +143,59 @@ function cleanCredentials(user, providerId, credentials) {
     cleaned[field.key] = value;
   });
   return {provider: provider, credentials: cleaned};
+}
+
+function requestPayload(request) {
+  if (!request.form) {
+    return JSON.stringify(request.payload || {});
+  }
+  return Object.keys(request.form)
+    .map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(request.form[key]))
+    .join('&');
+}
+
+function oauthProvider(user, providerId) {
+  if (isGuest(user)) {
+    i18n.fail('guestNotAllowed');
+  }
+  const provider = providers.find(providerId);
+  if (!provider) {
+    i18n.fail('unknownProvider', {provider: providerId});
+  }
+  if (!provider.oauth) {
+    i18n.fail('oauthUnsupported', {provider: provider.name});
+  }
+  return provider;
+}
+
+function cleanRedirectUri(value) {
+  const uri = typeof value === 'string' ? value.trim() : '';
+  if (!OAUTH_CALLBACK_PATTERN.test(uri)) {
+    i18n.fail('oauthRedirectInvalid');
+  }
+  return uri;
+}
+
+function readOAuthClient(user, provider, redirectUri) {
+  const client = parseJson(user.extensionProperties.timeTrackingOAuthClient, null);
+  const usable = client && client.clientId && client.provider === provider.id && client.redirectUri === redirectUri &&
+    Date.now() - client.registeredAt < OAUTH_CLIENT_MAX_AGE;
+  return usable ? client : null;
+}
+
+function writeOAuthClient(user, provider, redirectUri, clientId) {
+  const client = {provider: provider.id, redirectUri: redirectUri, clientId: clientId, registeredAt: Date.now()};
+  user.extensionProperties.timeTrackingOAuthClient = JSON.stringify(client);
+  return client;
+}
+
+function oauthAuthorization(provider, client) {
+  return {
+    authorizeUrl: provider.oauth.authorizeUrl,
+    clientId: client.clientId,
+    redirectUri: client.redirectUri,
+    scope: provider.oauth.scope
+  };
 }
 
 function updateLock(user, lock) {
@@ -554,6 +616,12 @@ exports.openSession = openSession;
 exports.publicAccount = publicAccount;
 exports.accountStatus = accountStatus;
 exports.cleanCredentials = cleanCredentials;
+exports.requestPayload = requestPayload;
+exports.oauthProvider = oauthProvider;
+exports.cleanRedirectUri = cleanRedirectUri;
+exports.readOAuthClient = readOAuthClient;
+exports.writeOAuthClient = writeOAuthClient;
+exports.oauthAuthorization = oauthAuthorization;
 exports.saveConnection = saveConnection;
 exports.updateLock = updateLock;
 exports.disconnect = disconnect;

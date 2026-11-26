@@ -58,7 +58,7 @@ The App lets every user connect their own account of an external time tracking s
 
 ## Configuration
 
-Each user connects their own account in the YouTrack profile under "Time Tracking". For Clockodo, this requires the e-mail address and the API key of the user.
+Each user connects their own account in the YouTrack profile under "Time Tracking". For Clockodo, users sign in at Clockodo in a new window and allow YouTrack to access their time tracking (OAuth), so no API key is needed. Accounts that are already connected with an API key keep working, and the profile offers to switch them to the sign-in. Only if YouTrack is served without HTTPS, the sign-in is not available and the e-mail address and the API key of the user are required instead.
 
 The Time Tracking panel and the "Log Time" dialog in issues are only visible to users who can add work items (`Create Work Items`), so reporters in helpdesk projects don't see who logged how much time. The Time Tracking tab in projects is only visible to users with the permission to update work items of other users (`Update Not Own Work Items`). Project and system administrators have it by default; grant it to other roles, for example a manager role, to give them access to the report.
 

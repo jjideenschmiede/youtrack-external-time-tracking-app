@@ -34,6 +34,12 @@ const MESSAGES = {
     providerStatus: '{provider} antwortete mit Status {status}.',
     providerNoProfile: '{provider} hat kein Benutzerprofil geliefert.',
     providerUserInactive: 'Der {provider}-Benutzer ist deaktiviert.',
+    providerNoClient: '{provider} hat die Anwendung nicht registriert.',
+    providerNoToken: '{provider} hat kein Zugriffstoken geliefert.',
+    providerAuthorizationExpired: 'Die Freigabe für {provider} ist abgelaufen oder wurde widerrufen. Bitte das Konto im Profil erneut verbinden.',
+    oauthUnsupported: '{provider} unterstützt die Anmeldung per OAuth nicht.',
+    oauthRedirectInvalid: 'Die Rücksprungadresse für die Anmeldung ist ungültig.',
+    oauthIncomplete: 'Die Anmeldung ist unvollständig. Bitte starte sie erneut.',
     mappingNotFound: '{field} „{value}“ aus dem Ticketfeld „{source}“ wurde in {provider} nicht gefunden.'
   },
   en: {
@@ -68,6 +74,12 @@ const MESSAGES = {
     providerStatus: '{provider} responded with status {status}.',
     providerNoProfile: '{provider} did not return a user profile.',
     providerUserInactive: 'The {provider} user is deactivated.',
+    providerNoClient: '{provider} did not register the application.',
+    providerNoToken: '{provider} did not return an access token.',
+    providerAuthorizationExpired: 'The authorization for {provider} has expired or was revoked. Please reconnect the account in your profile.',
+    oauthUnsupported: '{provider} does not support signing in with OAuth.',
+    oauthRedirectInvalid: 'The redirect address for the sign-in is invalid.',
+    oauthIncomplete: 'The sign-in is incomplete. Please start it again.',
     mappingNotFound: '{field} “{value}” from the issue field “{source}” was not found in {provider}.'
   }
 };

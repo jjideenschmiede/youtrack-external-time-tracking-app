@@ -7,6 +7,8 @@ import LoaderInline from '@jetbrains/ring-ui-built/components/loader-inline/load
 import newWindowIcon from '@jetbrains/icons/new-window';
 import {createApi} from '../common/api';
 import {submitOnEnter} from '../common/keyboard';
+import {isOAuthAvailable} from '../common/oauth';
+import {useOAuthConnect} from '../common/oauth-connect';
 import type {Account, AccountStatus, ProviderInfo} from '../common/types';
 import {t} from '../common/i18n';
 import {McpAddress} from './mcp-address';
@@ -32,9 +34,72 @@ const Row: React.FC<{label?: string; htmlFor?: string; help?: React.ReactNode; c
   </>
 );
 
-const Connected: React.FC<{account: Account; disconnecting: boolean; onDisconnect: () => void}> = (
-  {account, disconnecting, onDisconnect}
-) => (
+const OAuthConnect: React.FC<{
+  provider: ProviderInfo;
+  onConnected: (status: AccountStatus) => void;
+  label?: string;
+}> = ({provider, onConnected, label}) => {
+  const api = useMemo(() => createApi(host), []);
+  const {waiting, code, setCode, busy, error, start, reopen, submitCode, cancel} = useOAuthConnect(
+    api, provider, onConnected
+  );
+
+  return (
+    <>
+      {error && (
+        <Row>
+          <Banner mode="error" withIcon inline>{error}</Banner>
+        </Row>
+      )}
+
+      {!waiting && (
+        <Row help={t('oauthHelp', {provider: provider.name})}>
+          <div className="settings-actions">
+            <Button primary onClick={start} disabled={busy} loader={busy}>
+              {label ?? t('oauthConnect', {provider: provider.name})}
+            </Button>
+          </div>
+        </Row>
+      )}
+
+      {waiting && (
+        <>
+          <Row help={t('oauthWaiting', {provider: provider.name})}>
+            <div className="settings-actions">
+              <Button onClick={reopen} disabled={busy} icon={newWindowIcon}>
+                {t('oauthOpen')}
+              </Button>
+              <Button onClick={cancel} disabled={busy}>{t('cancel')}</Button>
+            </div>
+          </Row>
+          <Row label={t('oauthCode')} htmlFor="oauth-code" help={t('oauthCodeHelp')}>
+            <Input
+              id="oauth-code"
+              autoComplete="off"
+              value={code}
+              size={InputSize.M}
+              onKeyDown={event => submitOnEnter(event, submitCode)}
+              onChange={e => setCode(e.target.value)}
+            />
+            <div className="settings-actions">
+              <Button primary onClick={submitCode} disabled={!code.trim() || busy} loader={busy}>
+                {t('connect')}
+              </Button>
+            </div>
+          </Row>
+        </>
+      )}
+    </>
+  );
+};
+
+const Connected: React.FC<{
+  account: Account;
+  provider: ProviderInfo | null;
+  disconnecting: boolean;
+  onDisconnect: () => void;
+  onConnected: (status: AccountStatus) => void;
+}> = ({account, provider, disconnecting, onDisconnect, onConnected}) => (
   <div className="settings-grid">
     <Row label={t('provider')}>
       <span className="settings-value">{account.providerName}</span>
@@ -46,6 +111,14 @@ const Connected: React.FC<{account: Account; disconnecting: boolean; onDisconnec
       <Row label={t('company')}>
         <span className="settings-value">{account.company}</span>
       </Row>
+    )}
+    {provider?.oauth && account.auth === 'apiKey' && isOAuthAvailable() && (
+      <>
+        <Row>
+          <Banner mode="info" withIcon inline>{t('oauthSwitchHint', {provider: provider.name})}</Banner>
+        </Row>
+        <OAuthConnect provider={provider} onConnected={onConnected} label={t('oauthSwitch', {provider: provider.name})}/>
+      </>
     )}
     <Row>
       <div className="settings-actions">
@@ -76,6 +149,7 @@ const ConnectForm: React.FC<{status: AccountStatus; onConnected: (status: Accoun
   const [error, setError] = useState<string | null>(null);
 
   const provider = selected?.provider ?? null;
+  const oauth = !!provider?.oauth && isOAuthAvailable();
   const complete = !!provider && provider.credentialFields.every(field => (values[field.key] ?? '').trim() !== '');
 
   const submit = async () => {
@@ -113,7 +187,21 @@ const ConnectForm: React.FC<{status: AccountStatus; onConnected: (status: Accoun
         />
       </Row>
 
-      {provider && provider.credentialFields.map((field, index) => {
+      {provider && oauth && (
+        <OAuthConnect
+          key={provider.id}
+          provider={provider}
+          onConnected={onConnected}
+        />
+      )}
+
+      {provider?.oauth && !oauth && (
+        <Row>
+          <Banner mode="info" withIcon inline>{t('oauthUnavailable', {provider: provider.name})}</Banner>
+        </Row>
+      )}
+
+      {provider && !oauth && provider.credentialFields.map((field, index) => {
         const id = `credential-${field.key}`;
         const isLast = index === provider.credentialFields.length - 1;
         return (
@@ -140,19 +228,21 @@ const ConnectForm: React.FC<{status: AccountStatus; onConnected: (status: Accoun
         );
       })}
 
-      {error && (
+      {error && !oauth && (
         <Row>
           <Banner mode="error" withIcon inline>{error}</Banner>
         </Row>
       )}
 
-      <Row help={t('credentialsNotice')}>
-        <div className="settings-actions">
-          <Button primary onClick={submit} disabled={!complete || saving} loader={saving}>
-            {t('connect')}
-          </Button>
-        </div>
-      </Row>
+      {!oauth && (
+        <Row help={t('credentialsNotice')}>
+          <div className="settings-actions">
+            <Button primary onClick={submit} disabled={!complete || saving} loader={saving}>
+              {t('connect')}
+            </Button>
+          </div>
+        </Row>
+      )}
     </div>
   );
 };
@@ -198,7 +288,13 @@ const AppComponent: React.FunctionComponent = () => {
       {isOwnProfile && !status && !error && <LoaderInline/>}
 
       {status?.account && (
-        <Connected account={status.account} disconnecting={disconnecting} onDisconnect={handleDisconnect}/>
+        <Connected
+          account={status.account}
+          provider={status.providers.find(provider => provider.id === status.account?.provider) ?? null}
+          disconnecting={disconnecting}
+          onDisconnect={handleDisconnect}
+          onConnected={handleConnected}
+        />
       )}
       {status && !status.account && <ConnectForm status={status} onConnected={handleConnected}/>}
       {status && <McpAddress host={host}/>}

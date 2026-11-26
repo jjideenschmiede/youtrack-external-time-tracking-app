@@ -13,6 +13,20 @@ export interface ProviderInfo {
   credentialFields: CredentialField[];
   credentialHelp?: string | null;
   credentialHelpUrl?: string | null;
+  oauth?: boolean;
+}
+
+export interface OAuthAuthorization {
+  authorizeUrl: string;
+  clientId: string;
+  redirectUri: string;
+  scope: string;
+}
+
+export interface OAuthGrant {
+  code: string;
+  verifier: string;
+  redirectUri: string;
 }
 
 export interface Account {
@@ -21,6 +35,7 @@ export interface Account {
   name: string;
   email: string;
   company: string | null;
+  auth?: 'oauth' | 'apiKey';
   lock?: EditLock | null;
   links: ProviderLink[];
   absenceTypes?: AbsenceType[];

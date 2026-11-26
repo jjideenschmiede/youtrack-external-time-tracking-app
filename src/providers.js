@@ -3,6 +3,13 @@ const i18n = require('./i18n');
 
 const CLOCKODO = 'Clockodo';
 const BASE_URL = 'https://my.clockodo.com/api';
+const OAUTH_URL = 'https://my.clockodo.com';
+const OAUTH_CLIENT_NAME = 'YouTrack External Time Tracking';
+const OAUTH_SCOPE = [
+  'users:read', 'customers:read', 'projects:read', 'services:read', 'entries:write', 'clock:write',
+  'absences:write', 'usersNonbusinessDays:read', 'userReports:read'
+].join(' ');
+const TOKEN_LIFETIME_FALLBACK = 3600;
 
 function toClockodoTime(iso) {
   const date = new Date(iso);
@@ -22,6 +29,9 @@ function clockodoError(response) {
   if (body && body.error && body.error.message) {
     return i18n.failRaw(body.error.message);
   }
+  if (body && typeof body.error === 'string') {
+    return i18n.failRaw(body.error_description || body.error);
+  }
   if (body && Array.isArray(body.errors) && body.errors.length > 0) {
     return i18n.failRaw(body.errors.map((error) => error.message).join('; '));
   }
@@ -34,20 +44,89 @@ function clockodoError(response) {
   return i18n.fail('providerStatus', {provider: CLOCKODO, status: response.code});
 }
 
-function clockodoConnection(credentials, lang) {
-  if (!credentials || !credentials.email || !credentials.apiKey) {
+function clockodoConnection(credentials, lang, request) {
+  if (request && request.oauth) {
+    const oauthConnection = new http.Connection(OAUTH_URL);
+    oauthConnection.addHeader('Accept', 'application/json');
+    oauthConnection.addHeader('Content-Type', request.form ? 'application/x-www-form-urlencoded' : 'application/json');
+    return oauthConnection;
+  }
+  const accessToken = credentials && credentials.accessToken;
+  if (!accessToken && (!credentials || !credentials.email || !credentials.apiKey)) {
     i18n.fail('credentialsMissing');
   }
   const connection = new http.Connection(BASE_URL);
-  connection.addHeader('X-ClockodoApiUser', credentials.email);
-  connection.addHeader('X-ClockodoApiKey', credentials.apiKey);
-  connection.addHeader('X-Clockodo-External-Application', 'YouTrack Time Tracking;support@jj-ideenschmiede.de');
+  if (accessToken) {
+    connection.addHeader('Authorization', 'Bearer ' + accessToken);
+  } else {
+    connection.addHeader('X-ClockodoApiUser', credentials.email);
+    connection.addHeader('X-ClockodoApiKey', credentials.apiKey);
+    connection.addHeader('X-Clockodo-External-Application', 'YouTrack Time Tracking;support@jj-ideenschmiede.de');
+  }
   connection.addHeader('X-ClockodoEnableIsoUtcDateTimes', '1');
   connection.addHeader('Accept-Language', lang === 'de' ? 'de' : 'en');
   connection.addHeader('Accept', 'application/json');
   connection.addHeader('Content-Type', 'application/json');
   return connection;
 }
+
+function tokenRequest(form) {
+  return {method: 'POST', path: '/token', query: [], oauth: true, form: form};
+}
+
+const clockodoOAuth = {
+  authorizeUrl: OAUTH_URL + '/oauth/authorize',
+  scope: OAUTH_SCOPE,
+
+  registerRequest: (redirectUri) => ({
+    method: 'POST',
+    path: '/oauth/register',
+    query: [],
+    oauth: true,
+    payload: {
+      client_name: OAUTH_CLIENT_NAME,
+      redirect_uris: [redirectUri],
+      grant_types: ['authorization_code', 'refresh_token'],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'none',
+      scope: OAUTH_SCOPE
+    }
+  }),
+
+  parseClient: (body) => {
+    if (!body || !body.client_id) {
+      i18n.fail('providerNoClient', {provider: CLOCKODO});
+    }
+    return String(body.client_id);
+  },
+
+  codeRequest: (clientId, input) => tokenRequest({
+    grant_type: 'authorization_code',
+    code: input.code,
+    redirect_uri: input.redirectUri,
+    client_id: clientId,
+    code_verifier: input.verifier
+  }),
+
+  refreshRequest: (credentials) => tokenRequest({
+    grant_type: 'refresh_token',
+    refresh_token: credentials.refreshToken,
+    client_id: credentials.clientId
+  }),
+
+  parseToken: (body, clientId, previous) => {
+    if (!body || !body.access_token) {
+      i18n.fail('providerNoToken', {provider: CLOCKODO});
+    }
+    const lifetime = Number(body.expires_in) > 0 ? Number(body.expires_in) : TOKEN_LIFETIME_FALLBACK;
+    return {
+      clientId: clientId,
+      accessToken: String(body.access_token),
+      refreshToken: body.refresh_token ? String(body.refresh_token) : (previous && previous.refreshToken) || null,
+      expiresAt: Date.now() + lifetime * 1000
+    };
+  }
+};
 
 const OPTION_KEYS = ['id', 'name'];
 const ENTRY_KEYS = [
@@ -187,6 +266,7 @@ const clockodo = {
 
   connection: clockodoConnection,
   fail: clockodoError,
+  oauth: clockodoOAuth,
   pageQuery: pageQuery,
   nextPage: nextPage,
 
@@ -468,7 +548,8 @@ exports.describe = (provider, lang) => ({
   description: i18n.pick(lang, provider.description),
   credentialFields: localizeFields(lang, provider.credentialFields),
   credentialHelp: i18n.pick(lang, provider.credentialHelp),
-  credentialHelpUrl: provider.credentialHelpUrl
+  credentialHelpUrl: provider.credentialHelpUrl,
+  oauth: !!provider.oauth
 });
 
 exports.entryFields = (provider, lang) => localizeFields(lang, provider.entryFields);
